@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ELEM_type_1 testElementId='0' intAttribute='20' floatAttribute='1.23' stringAttribute="TEST">
+
+    <!-- Single line comment -->
+    <ELEM_type_2 testElementId='1'>
+        <ELEM_type_3 testElementId='11'/>
+        <ELEM_type_3 testElementId='12'/>
+        <ELEM_type_3 testElementId='13'/>
+
+        <!-- Single line comment -->
+        <ELEM_type_3 testElementId='14'>
+            <!-- Multiline
+            comment -->
+        </ELEM_type_3>
+    </ELEM_type_2>
+
+    <ELEM_type_2 testElementId='2'>Child element with string content</ELEM_type_2>
+</ELEM_type_1>
+
