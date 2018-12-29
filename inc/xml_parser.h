@@ -71,7 +71,7 @@ typedef char PARSER_CHAR;
 
 typedef struct parser_xml_name
 {
-	const char* name;
+    const char* name;
 }
 PARSER_XML_NAME;
 
@@ -79,29 +79,29 @@ PARSER_XML_NAME;
 
 typedef struct parser_attribute
 {
-	PARSER_INT attribute_type;
+    PARSER_INT attribute_type;
 
-	union ATTRIBUTE_VALUE
-	{
-		char*        string_ptr;
-		PARSER_INT   int_value;
-		PARSER_FLOAT float_value;
-	}
-	attr_val;
-	
-	// Attribute name either can be dynamically allocated string
-	// or an integer that represents index in the
-	// PARSER_XML_NAME -list that is passed optionally
-	// at the beginning of parsing.
+    union ATTRIBUTE_VALUE
+    {
+        char*        string_ptr;
+        PARSER_INT   int_value;
+        PARSER_FLOAT float_value;
+    }
+    attr_val;
+    
+    // Attribute name either can be dynamically allocated string
+    // or an integer that represents index in the
+    // PARSER_XML_NAME -list that is passed optionally
+    // at the beginning of parsing.
 
-	union ATTRIBUTE_NAME
-	{
-		PARSER_CHAR* name_string;
-		PARSER_INT   attribute_index;
-	}
-	attr_name;
+    union ATTRIBUTE_NAME
+    {
+        PARSER_CHAR* name_string;
+        PARSER_INT   attribute_index;
+    }
+    attr_name;
 
-	struct parser_attribute* next_attribute;
+    struct parser_attribute* next_attribute;
 }
 PARSER_ATTRIBUTE;
 
@@ -109,10 +109,10 @@ PARSER_ATTRIBUTE;
 
 typedef struct parser_string
 {
-	PARSER_CHAR*          buffer;
-	PARSER_SIZE           buffer_size;
+    PARSER_CHAR*          buffer;
+    PARSER_SIZE           buffer_size;
 
-	struct parser_string* next_string;
+    struct parser_string* next_string;
 }
 PARSER_STRING;
 
@@ -121,8 +121,8 @@ PARSER_STRING;
 
 typedef struct parser_string_content
 {
-	PARSER_STRING* first_string;
-	PARSER_STRING* last_string;
+    PARSER_STRING* first_string;
+    PARSER_STRING* last_string;
 }
 PARSER_STRING_CONTENT;
 
@@ -130,8 +130,8 @@ PARSER_STRING_CONTENT;
 
 typedef struct parser_child_element
 {
-	struct parser_element* first_element;
-	struct parser_element* last_element;
+    struct parser_element* first_element;
+    struct parser_element* last_element;
 }
 PARSER_CHILD_ELEMENT;
 
@@ -139,29 +139,29 @@ PARSER_CHILD_ELEMENT;
 
 typedef struct parser_element
 {
-	struct parser_element* next_element;
-	struct parser_element* parent_element;
+    struct parser_element* next_element;
+    struct parser_element* parent_element;
 
-	struct parser_attribute* first_attribute;
-	struct parser_attribute* last_attribute;
+    struct parser_attribute* first_attribute;
+    struct parser_attribute* last_attribute;
 
-	// Element name.
+    // Element name.
 
-	union PARSER_ELEMENT_NAME
-	{
-		PARSER_INT   name_index;
+    union PARSER_ELEMENT_NAME
+    {
+        PARSER_INT   name_index;
 #if defined(PARSER_WITH_DYNAMIC_NAMES)
-		PARSER_CHAR* name_string;
+        PARSER_CHAR* name_string;
 #endif
-	}
-	elem_name;
+    }
+    elem_name;
 
-	// Element inner content.
+    // Element inner content.
 
-	struct parser_string_content inner_string;
-	struct parser_child_element  inner_element;
+    struct parser_string_content inner_string;
+    struct parser_child_element  inner_element;
 
-	PARSER_INT content_type;
+    PARSER_INT content_type;
 }
 PARSER_ELEMENT;
 
@@ -169,19 +169,19 @@ PARSER_ELEMENT;
 
 typedef struct parser_state
 {
-	PARSER_INT  flags;
-	PARSER_INT  name_buf_pos;
-	PARSER_INT  value_buf_pos;
+    PARSER_INT  flags;
+    PARSER_INT  name_buf_pos;
+    PARSER_INT  value_buf_pos;
 
-	PARSER_CHAR previous_char;
-	PARSER_CHAR current_char;
-	PARSER_CHAR next_char;
+    PARSER_CHAR previous_char;
+    PARSER_CHAR current_char;
+    PARSER_CHAR next_char;
 
-	PARSER_CHAR temp_name_buffer[PARSER_MAX_NAME_STRING_LENGTH];
-	PARSER_CHAR temp_value_buffer[PARSER_MAX_NAME_STRING_LENGTH];
+    PARSER_CHAR temp_name_buffer[PARSER_MAX_NAME_STRING_LENGTH];
+    PARSER_CHAR temp_value_buffer[PARSER_MAX_NAME_STRING_LENGTH];
 
-	PARSER_ELEMENT* element;
-	PARSER_ELEMENT* parent_element;
+    PARSER_ELEMENT* element;
+    PARSER_ELEMENT* parent_element;
 }
 PARSER_STATE;
 
@@ -189,17 +189,17 @@ PARSER_STATE;
 
 typedef struct parser_xml
 {
-	PARSER_STATE* state;
+    PARSER_STATE* state;
 
-	struct parser_element* first_element;
-	struct parser_element* last_element;
+    struct parser_element* first_element;
+    struct parser_element* last_element;
 }
 PARSER_XML;
 
 // Assert macro
 
 #define PARSER_ASSERT(CONDITION)             \
-	if ( !(CONDITION) )                      \
+    if ( !(CONDITION) )                      \
     {                                        \
         printf("Parser error %s %d: %s",     \
         __FUNCTION__, __LINE__, #CONDITION); \
@@ -217,9 +217,9 @@ PARSER_ERROR parser_finalize(PARSER_XML* xml);
 // parse_xml
 
 PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
-	                             const PARSER_CHAR*     xml_string,
-	                             const PARSER_XML_NAME* xml_name_list,
-	                             PARSER_INT             xml_name_list_length);
+                                 const PARSER_CHAR*     xml_string,
+                                 const PARSER_XML_NAME* xml_name_list,
+                                 PARSER_INT             xml_name_list_length);
 
 // parser_free_xml
 
@@ -230,8 +230,8 @@ PARSER_ERROR parser_free_xml(PARSER_XML* xml);
 PARSER_ERROR parser_write_xml_to_buffer(const PARSER_XML*      xml,
                                         const PARSER_XML_NAME* xml_name_list,
                                         PARSER_CHAR*           buffer,
-										PARSER_INT             buffer_size,
-										PARSER_INT*            bytes_written,
-										PARSER_INT             flags);
+                                        PARSER_INT             buffer_size,
+                                        PARSER_INT*            bytes_written,
+                                        PARSER_INT             flags);
 
 #endif

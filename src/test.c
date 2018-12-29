@@ -32,66 +32,66 @@ SOFTWARE.
 
 static const PARSER_XML_NAME elements[]=
 {
-	// Predefined element and attribute names.
+    // Predefined element and attribute names.
 
-	{ "ELEM_type_1"     },
-	{ "ELEM_type_2"     },
-	{ "ELEM_type_3"     },
+    { "ELEM_type_1"     },
+    { "ELEM_type_2"     },
+    { "ELEM_type_3"     },
 
-	{ "testElementId"   },
-	{ "intAttribute"    },
-	{ "floatAttribute"  },
-	{ "stringAttribute" },
+    { "testElementId"   },
+    { "intAttribute"    },
+    { "floatAttribute"  },
+    { "stringAttribute" },
 };
 
 int main(void)
 {
-	PARSER_XML*  xml;
-	PARSER_ERROR error;
-	PARSER_CHAR  out[1024];
-	PARSER_INT   bw;
+    PARSER_XML*  xml;
+    PARSER_ERROR error;
+    PARSER_CHAR  out[1024];
+    PARSER_INT   bw;
 #if defined(PARSER_TEST_FILE)
-	FILE*       file;
-	char*       buffer;
-	size_t      size;
+    FILE*       file;
+    char*       buffer;
+    size_t      size;
 #endif
 
     // Initialize xml-struct.
 
     xml= parser_begin();
-	if ( !xml )
-	{
-		printf("%s %d: XML-struct initialization failed.\n", __FUNCTION__, __LINE__);
-		return(1);
-	}
+    if ( !xml )
+    {
+        printf("%s %d: XML-struct initialization failed.\n", __FUNCTION__, __LINE__);
+        return(1);
+    }
 
 #if defined(PARSER_TEST_FILE)
 
-	file= fopen("src\\test_1.xml", "r");
-	if ( !file )
-	{
-		printf("%d %s: Error while opening file.", __FUNCTION__, __LINE__);
-		return(1);
-	}
+    file= fopen("src\\test_1.xml", "r");
+    if ( !file )
+    {
+        printf("%d %s: Error while opening file.", __FUNCTION__, __LINE__);
+        return(1);
+    }
 
-	// Get file size.
+    // Get file size.
 
-	fseek(file, 0, SEEK_END);
-	size= ftell(file);
-	fseek(file, 0, SEEK_SET);
+    fseek(file, 0, SEEK_END);
+    size= ftell(file);
+    fseek(file, 0, SEEK_SET);
 
-	// Allocate temporary buffer.
-	
-	buffer= malloc(sizeof(char)*(size+1));
-	PARSER_ASSERT(buffer);
+    // Allocate temporary buffer.
+    
+    buffer= malloc(sizeof(char)*(size+1));
+    PARSER_ASSERT(buffer);
 
-	fread(buffer, 1, size, file);
-	fclose(file);
+    fread(buffer, 1, size, file);
+    fclose(file);
 
-	// Parse xml-string.
+    // Parse xml-string.
 
-	error= parser_parse_string(xml, buffer, elements, sizeof(elements)/sizeof(PARSER_XML_NAME));
-	free(buffer);
+    error= parser_parse_string(xml, buffer, elements, sizeof(elements)/sizeof(PARSER_XML_NAME));
+    free(buffer);
 
 #else
     // Parse xml-string.
@@ -100,29 +100,29 @@ int main(void)
 #endif
 
     if ( error )
-	{
-		printf("%d %s: Error parsing xml-string.", __FUNCTION__, __LINE__);
-		goto end;
-	}
+    {
+        printf("%d %s: Error parsing xml-string.", __FUNCTION__, __LINE__);
+        goto end;
+    }
 
     // End parsing.
 
     error= parser_finalize(xml);
-	if ( !error )
-	{
-		// Write parsed xml back to string.
+    if ( !error )
+    {
+        // Write parsed xml back to string.
 
-		error= parser_write_xml_to_buffer(xml, elements, out, sizeof(out), &bw, 0);
-		if ( !error )
-		    printf("Bytes written:%d Buffer content:\n%s", bw, out);
-	}
+        error= parser_write_xml_to_buffer(xml, elements, out, sizeof(out), &bw, 0);
+        if ( !error )
+            printf("Bytes written:%d Buffer content:\n%s", bw, out);
+    }
 
-	end:
+    end:
 
-	// Free xml.
+    // Free xml.
 
-	if ( xml )
-	    parser_free_xml(xml);
+    if ( xml )
+        parser_free_xml(xml);
 
-	return(0);
+    return(0);
 }
