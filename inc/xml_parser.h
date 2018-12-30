@@ -88,7 +88,7 @@ typedef struct parser_attribute
         PARSER_FLOAT float_value;
     }
     attr_val;
-    
+
     // Attribute name either can be dynamically allocated string
     // or an integer that represents index in the
     // PARSER_XML_NAME -list that is passed optionally
@@ -218,6 +218,7 @@ PARSER_ERROR parser_finalize(PARSER_XML* xml);
 
 PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
                                  const PARSER_CHAR*     xml_string,
+                                 PARSER_INT             xml_string_length,
                                  const PARSER_XML_NAME* xml_name_list,
                                  PARSER_INT             xml_name_list_length);
 

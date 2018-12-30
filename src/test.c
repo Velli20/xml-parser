@@ -44,17 +44,17 @@ static const PARSER_XML_NAME elements[]=
     { "stringAttribute" },
 };
 
-int main(void)
+// test_split_parse
+
+static PARSER_ERROR test_split_parse(const PARSER_CHAR* buffer,
+                                     PARSER_INT         buffer_lenght,
+                                     PARSER_CHAR*       buffer_out,
+                                     PARSER_INT         buffer_out_size,
+                                     PARSER_INT*        bytes_written)
 {
     PARSER_XML*  xml;
     PARSER_ERROR error;
-    PARSER_CHAR  out[1024];
-    PARSER_INT   bw;
-#if defined(PARSER_TEST_FILE)
-    FILE*       file;
-    char*       buffer;
-    size_t      size;
-#endif
+    int          i;
 
     // Initialize xml-struct.
 
@@ -65,7 +65,88 @@ int main(void)
         return(1);
     }
 
-#if defined(PARSER_TEST_FILE)
+    // Test split parsing xml 1-byte at the time.
+
+    for ( i= 0; i < buffer_lenght; i++ )
+    {
+        error= parser_parse_string(xml, &(buffer[i]), 1, elements, sizeof(elements)/sizeof(PARSER_XML_NAME));
+        if ( error )
+        {
+            printf("%d %s: Error split parsing xml-string.", __FUNCTION__, __LINE__);
+            break;
+        }
+    }
+
+    // End parsing.
+
+    error= parser_finalize(xml);
+    if ( !error )
+    {
+        // Write parsed xml back to string.
+
+        error= parser_write_xml_to_buffer(xml, elements, buffer_out, buffer_out_size, bytes_written, 0);
+    }
+
+    return(error);
+}
+
+// test_parse
+
+static PARSER_ERROR test_parse(const PARSER_CHAR* buffer,
+                               PARSER_INT         buffer_lenght,
+                               PARSER_CHAR*       buffer_out,
+                               PARSER_INT         buffer_out_size,
+                               PARSER_INT*        bytes_written)
+{
+    PARSER_XML*  xml;
+    PARSER_ERROR error;
+
+    // Initialize xml-struct.
+
+    xml= parser_begin();
+    if ( !xml )
+    {
+        printf("%s %d: XML-struct initialization failed.\n", __FUNCTION__, __LINE__);
+        return(1);
+    }
+
+    // Parse string.
+
+    error= parser_parse_string(xml, buffer, buffer_lenght, elements, sizeof(elements)/sizeof(PARSER_XML_NAME));
+    if ( error )
+    {
+        printf("%d %s: Error split parsing xml-string.", __FUNCTION__, __LINE__);
+    }
+
+    // End parsing.
+
+    parser_finalize(xml);
+    if ( !error )
+    {
+        // Write parsed xml back to string.
+
+        error= parser_write_xml_to_buffer(xml, elements, buffer_out, buffer_out_size, bytes_written, 0);
+    }
+
+    return(error);
+}
+
+int main(void)
+{
+    PARSER_XML*  xml;
+    PARSER_ERROR error;
+    PARSER_CHAR  out[1024];
+    PARSER_INT   bw;
+    PARSER_INT   i;
+    size_t       xml_string_length;
+#if defined(PARSER_TEST_READ_FROM_FILE)
+    FILE*       file;
+    char*       buffer;
+#else
+    const char* buffer;
+#endif
+
+#if defined(PARSER_TEST_READ_FROM_FILE)
 
     file= fopen("src\\test_1.xml", "r");
     if ( !file )
@@ -77,52 +158,45 @@ int main(void)
     // Get file size.
 
     fseek(file, 0, SEEK_END);
-    size= ftell(file);
+    xml_string_length= ftell(file);
     fseek(file, 0, SEEK_SET);
 
     // Allocate temporary buffer.
-    
-    buffer= malloc(sizeof(char)*(size+1));
+
+    buffer= malloc(sizeof(char)*(xml_string_length+1));
     PARSER_ASSERT(buffer);
 
-    fread(buffer, 1, size, file);
+    fread(buffer, 1, xml_string_length, file);
     fclose(file);
-
-    // Parse xml-string.
-
-    error= parser_parse_string(xml, buffer, elements, sizeof(elements)/sizeof(PARSER_XML_NAME));
-    free(buffer);
-
 #else
-    // Parse xml-string.
 
-    error= parser_parse_string(xml, test_1, elements, sizeof(elements)/sizeof(PARSER_XML_NAME));
+    // Use xml string from test.h
+
+    buffer= test_1;
+    xml_string_length= strlen(test_1);
 #endif
 
+    // Test parsing.
+
+    error= test_parse(buffer, xml_string_length, out, sizeof(out), &bw);
     if ( error )
     {
-        printf("%d %s: Error parsing xml-string.", __FUNCTION__, __LINE__);
-        goto end;
+        printf("Parse test error: %d\n%s", bw, out);
+        return(error);
     }
 
-    // End parsing.
+    printf("Parse test: Bytes written:%d Buffer content:\n%s", bw, out);
 
-    error= parser_finalize(xml);
-    if ( !error )
+    // Test split parsing.
+
+    error= test_split_parse(buffer, xml_string_length, out, sizeof(out), &bw);
+    if ( error )
     {
-        // Write parsed xml back to string.
-
-        error= parser_write_xml_to_buffer(xml, elements, out, sizeof(out), &bw, 0);
-        if ( !error )
-            printf("Bytes written:%d Buffer content:\n%s", bw, out);
+        printf("Parse test error: %d\n%s", bw, out);
+        return(error);
     }
 
-    end:
-
-    // Free xml.
-
-    if ( xml )
-        parser_free_xml(xml);
+    printf("Split parse test: Bytes written:%d Buffer content:\n%s", bw, out);
 
     return(0);
 }

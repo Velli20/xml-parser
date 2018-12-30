@@ -24,13 +24,15 @@ SOFTWARE.
 
 // Includes
 
+#include "xml_parser.h"
+
 #if defined(PARSER_INCLUDE_LOG)
 #include <stdio.h>
 #include <stdarg.h>
 #endif
 #include <stdlib.h>
 #include <math.h>
-#include "xml_parser.h"
+
 
 // Defines
 
@@ -120,11 +122,11 @@ static inline PARSER_INT parser_strncpy(const PARSER_CHAR* src,
                                         PARSER_INT         max_length)
 {
     PARSER_INT n;
-    
+
     for ( n= 0; n < max_length && *src != '\0'; *dest++ = *src++ );
 
     *dest= '\0';
-    
+
     return (n);
 }
 
@@ -208,7 +210,7 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
     child_element->parent_element=  0;
     child_element->first_attribute= 0;
     child_element->last_attribute=  0;
-        
+
     // Link inner element.
 
     if ( parent_element )
@@ -311,7 +313,7 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
         // Copy element name to buffer.
 
         parser_strncpy(element_name, child_element->elem_name.name_string, (length + 1));
-        
+
         child_element->content_type= PARSER_ELEMENT_NAME_TYPE_STRING;
     }
 #endif
@@ -416,7 +418,7 @@ static PARSER_ERROR parser_add_attribute_to_element(PARSER_ELEMENT*        paren
     {
         attribute->attr_val.int_value= int_value;
     }
-    
+
     // Copy full string value.
 
     else
@@ -471,7 +473,7 @@ static PARSER_ERROR parser_add_attribute_to_element(PARSER_ELEMENT*        paren
 #endif
             return(PARSER_RESULT_OUT_OF_MEMORY);
         }
-        
+
         parser_strncpy(attribute_name_string, attribute->attr_name.name_string, length + 1);
     }
 
@@ -526,12 +528,12 @@ static PARSER_ERROR parser_copy_element_content_string(PARSER_ELEMENT*    owner_
 
     string->buffer_size= length+1;
     string->next_string= 0;
-    
+
     // Link first string struct to owner element.
 
     if ( !owner_element->inner_string.first_string )
         owner_element->inner_string.first_string= string;
-    
+
     if ( owner_element->inner_string.last_string )
         owner_element->inner_string.last_string->next_string= string;
 
@@ -567,7 +569,7 @@ static PARSER_ERROR parser_free_element(PARSER_ELEMENT* element)
         {
             parser_free_element(element->inner_element.first_element);
         }
-        
+
         // Free inner string structs.
 
         if ( element->inner_string.first_string )
@@ -615,7 +617,7 @@ static PARSER_ERROR parser_free_element(PARSER_ELEMENT* element)
         element=      element->next_element;
 
         // Free previous element struct.
-        
+
         free(prev_element);
     }
 
@@ -657,7 +659,7 @@ PARSER_ERROR parser_free_xml(PARSER_XML* xml)
 
     if ( !xml )
         return(0);
-    
+
     // Finalize parser state if not finalized yet.
 
     error= parser_finalize(xml);
@@ -714,14 +716,16 @@ PARSER_XML* parser_begin(void)
 
 PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
                                  const PARSER_CHAR*     xml_string,
+                                 PARSER_INT             xml_string_length,
                                  const PARSER_XML_NAME* xml_name_list,
                                  PARSER_INT             xml_name_list_length)
 {
+    PARSER_INT   i;
     PARSER_ERROR error;
 
     // Check input string...
 
-    if ( !xml_string || !*xml_string )
+    if ( !xml_string || !*xml_string || xml_string_length < 1 )
     {
 #if defined(PARSER_INCLUDE_LOG)
         parser_log(__LINE__, __FUNCTION__, "Error: xml string empty/null");
@@ -738,7 +742,7 @@ PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
 #endif
         return(PARSER_RESULT_ERROR);
     }
-    
+
     if ( !xml )
     {
 #if defined(PARSER_INCLUDE_LOG)
@@ -752,13 +756,17 @@ PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
 #if defined(PARSER_INCLUDE_LOG)
         parser_log(__LINE__, __FUNCTION__, "Error: XML struct is finalized.");
 #endif
-        return(PARSER_RESULT_ERROR);    
+        return(PARSER_RESULT_ERROR);
     }
 
     // Start parsing.
-    
-    for ( xml->state->current_char= *xml_string, xml->state->next_char= xml_string[1]; *xml_string++ != '\0';  xml->state->previous_char= xml->state->current_char, xml->state->current_char= xml->state->next_char, xml->state->next_char= *xml_string )
+
+    for ( i= 0; i < xml_string_length; i++ )
     {
+        xml->state->previous_char= xml->state->current_char;
+        xml->state->current_char=  xml->state->next_char;
+        xml->state->next_char=     i < xml_string_length ? xml_string[i] : '\0';
+
         // Comment line start.
 
         if ( !(xml->state->flags & PARSER_STATE_ATTRIBUTE_VALUE_OPEN) && xml->state->current_char == '<' && xml->state->next_char == '!' )
@@ -1063,7 +1071,7 @@ PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
         }
 
     }
-    
+
     return (0);
 }
 
@@ -1214,7 +1222,7 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
             buffer_append_string("\"null\"", buffer, buffer_size, bytes_written);
 #endif
         }
-        
+
         attribute= attribute->next_attribute;
     }
 }
@@ -1246,7 +1254,7 @@ static void print_inner_strings(PARSER_STRING* string,
             buffer_append_string("null", buffer, buffer_size, bytes_written);
 #endif
         }
-        
+
         string= string->next_string;
     }
 }
