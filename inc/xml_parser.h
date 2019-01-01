@@ -201,7 +201,7 @@ PARSER_XML;
 #define PARSER_ASSERT(CONDITION)             \
     if ( !(CONDITION) )                      \
     {                                        \
-        printf("Parser error %s %d: %s",     \
+        printf("Parser assert %s %d: %s",    \
         __FUNCTION__, __LINE__, #CONDITION); \
         return(PARSER_RESULT_ERROR);         \
     }
@@ -234,5 +234,14 @@ PARSER_ERROR parser_write_xml_to_buffer(const PARSER_XML*      xml,
                                         PARSER_INT             buffer_size,
                                         PARSER_INT*            bytes_written,
                                         PARSER_INT             flags);
+
+// parser_find_element
+
+const PARSER_ELEMENT* parser_find_element(const PARSER_XML*      xml,
+                                          const PARSER_XML_NAME* xml_name_list,
+                                          const PARSER_ELEMENT*  offset,
+                                          PARSER_INT             max_depth,
+                                          PARSER_INT             xml_name_list_length,
+                                          const PARSER_CHAR*     element_name);
 
 #endif

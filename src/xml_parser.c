@@ -245,14 +245,10 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
     else
     {
         if ( !xml->first_element )
-        {
             xml->first_element= child_element;
-        }
 
         if ( xml->last_element )
-        {
             xml->last_element->next_element= child_element;
-        }
 
         xml->last_element= child_element;
     }
@@ -558,17 +554,13 @@ static PARSER_ERROR parser_free_element(PARSER_ELEMENT* element)
 
 #if defined(PARSER_WITH_DYNAMIC_NAMES)
         if ( element->content_type & PARSER_ELEMENT_NAME_TYPE_STRING && element->elem_name.name_string )
-        {
             free(element->elem_name.name_string);
-        }
 #endif
 
         // Free inner element structs.
 
         if ( element->inner_element.first_element )
-        {
             parser_free_element(element->inner_element.first_element);
-        }
 
         // Free inner string structs.
 
@@ -946,6 +938,8 @@ PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
             xml->state->flags|=  PARSER_STATE_ELEMENT_END_TAG_OPEN;
             xml->state->flags&= ~PARSER_STATE_CONTENT_TYPE_STRING;
             xml->state->name_buf_pos=  0;
+
+            xml->state->element= xml->state->parent_element;
         }
 
         // Copy content string in to a temporary value buffer.
@@ -978,6 +972,7 @@ PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
                 xml->state->element=        xml->state->element->parent_element;
                 xml->state->parent_element= xml->state->element;
             }
+
             else
             {
                 xml->state->parent_element= 0;
@@ -1269,6 +1264,7 @@ static PARSER_INT parser_write_xml_element_to_buffer(PARSER_ELEMENT*        elem
                                                      PARSER_INT             depth,
                                                      PARSER_INT             flags)
 {
+
     while ( element && (*bytes_written) < (buffer_size-1) )
     {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
@@ -1417,3 +1413,109 @@ PARSER_ERROR parser_write_xml_to_buffer(const PARSER_XML*      xml,
     return (0);
 }
 #endif
+
+// parser_find_element
+// Returns first element after offset with matching element name.
+
+const PARSER_ELEMENT* parser_find_element(const PARSER_XML*      xml,
+                                          const PARSER_XML_NAME* xml_name_list,
+                                          const PARSER_ELEMENT*  offset,
+                                          PARSER_INT             max_depth,
+                                          PARSER_INT             xml_name_list_length,
+                                          const PARSER_CHAR*     element_name)
+{
+    const PARSER_ELEMENT* element;
+    PARSER_INT            depth;
+
+    if ( !xml )
+    {
+#if defined(PARSER_INCLUDE_LOG)
+        parser_log(__LINE__, __FUNCTION__, " Error: Inavlid XML-pointer.");
+#endif
+        return(0);
+    }
+
+#if !defined(PARSER_WITH_DYNAMIC_NAMES)
+    if ( !xml_name_list || xml_name_list_length < 1 )
+    {
+#if defined(PARSER_INCLUDE_LOG)
+        parser_log(__LINE__, __FUNCTION__, " Error: XML-name list is empty.");
+#endif
+        return(0);
+    }
+#endif
+
+    if ( !element_name || !*element_name )
+    {
+#if defined(PARSER_INCLUDE_LOG)
+        parser_log(__LINE__, __FUNCTION__, " Error: Inavlid element name.");
+#endif
+        return(0);
+    }
+
+    if ( offset )
+        element= offset;
+    else
+        element= xml->first_element;
+
+    depth= 0;
+    while ( element && depth <= max_depth )
+    {
+        // Return current element if name matches.
+
+        if ( (element->content_type & PARSER_ELEMENT_NAME_TYPE_INDEX) && element->elem_name.name_index != PARSER_UNKNOWN_INDEX && element->elem_name.name_index < xml_name_list_length )
+        {
+            if ( !parser_strncmp(xml_name_list[element->elem_name.name_index].name, element_name, PARSER_MAX_NAME_STRING_LENGTH) )
+                return(element);
+        }
+
+#if defined(PARSER_WITH_DYNAMIC_NAMES)
+        else if ( (element->content_type & PARSER_ELEMENT_NAME_TYPE_STRING) && element->elem_name.name_string )
+        {
+            if ( !parser_strncmp(element->elem_name.name_string, element_name, PARSER_MAX_NAME_STRING_LENGTH) )
+                return(element);
+        }
+#endif
+
+        // Move to inner element.
+
+        if ( element->inner_element.first_element && depth < max_depth)
+        {
+            element= element= element->inner_element.first_element;
+            depth++;
+        }
+
+        // If no more elements are available depth > 0 then move to parent element.
+
+        else if ( !element->next_element && depth > 0 && !element->inner_element.first_element )
+        {
+            // Iterate until parent element with next element is found.
+
+            while ( depth > 0 && element && element->parent_element )
+            {
+                depth--;
+
+                if ( element->parent_element->next_element )
+                {
+                    element= element->parent_element->next_element;
+                    break;
+                }
+
+                else
+                {
+                    element= element->parent_element;
+                }
+            }
+        }
+
+        // Move to next element in linked list.
+
+        else
+        {
+            element= element->next_element;
+        }
+
+    }
+
+    return(0);
+}

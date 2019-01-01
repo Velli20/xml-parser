@@ -1,20 +1,23 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<element_type_1          depth='0'>
 
-<ELEM_type_1 testElementId='0' intAttribute='20' floatAttribute='1.23' stringAttribute="TEST">
+  <!-- Depth: 2 -->
+  <element_type_2        depth='1'>
+    <element_type_3      depth='2'/>
+  </element_type_2>
 
-    <!-- Single line comment -->
-    <ELEM_type_2 testElementId='1'>
-        <ELEM_type_3 testElementId='11'/>
-        <ELEM_type_3 testElementId='12'/>
-        <ELEM_type_3 testElementId='13'/>
+  <!-- Depth: 3 -->
+  <element_type_4        depth='1'>
+    <element_type_5      depth='2'>
+      <element_type_6    depth='3'></element_type_6>
+    </element_type_5>
+  </element_type_4>
 
-        <!-- Single line comment -->
-        <ELEM_type_3 testElementId='14'>
-            <!-- Multiline
-            comment -->
-        </ELEM_type_3>
-    </ELEM_type_2>
-
-    <ELEM_type_2 testElementId='2'>Child element with string content</ELEM_type_2>
-</ELEM_type_1>
-
+  <!-- Depth: 4 -->
+  <element_type_7        depth='1'>
+    <element_type_8      depth='2'>
+      <element_type_9    depth='3'>
+        <element_type_10 depth='4'/>
+      </element_type_9>
+    </element_type_8>
+  </element_type_7>
+</element_type_1>
