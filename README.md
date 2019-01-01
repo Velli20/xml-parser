@@ -1,7 +1,6 @@
 # XML-parser
 
-Work in progress. Lightweight xml-parser for microcontrollers.
-
+Work in progress. Lightweight xml-parser for embedded systems.
 
 # Usage
 
