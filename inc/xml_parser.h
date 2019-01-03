@@ -219,8 +219,10 @@ PARSER_ERROR parser_finalize(PARSER_XML* xml);
 PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
                                  const PARSER_CHAR*     xml_string,
                                  PARSER_INT             xml_string_length,
-                                 const PARSER_XML_NAME* xml_name_list,
-                                 PARSER_INT             xml_name_list_length);
+                                 const PARSER_XML_NAME* element_name_list,
+                                 PARSER_INT             element_name_list_length,
+                                 const PARSER_XML_NAME* attribute_name_list,
+                                 PARSER_INT             attribute_name_list_length);
 
 // parser_free_xml
 
@@ -229,7 +231,8 @@ PARSER_ERROR parser_free_xml(PARSER_XML* xml);
 // parser_print_xml
 
 PARSER_ERROR parser_write_xml_to_buffer(const PARSER_XML*      xml,
-                                        const PARSER_XML_NAME* xml_name_list,
+                                        const PARSER_XML_NAME* element_name_list,
+                                        const PARSER_XML_NAME* attribute_name_list,
                                         PARSER_CHAR*           buffer,
                                         PARSER_INT             buffer_size,
                                         PARSER_INT*            bytes_written,
@@ -243,5 +246,14 @@ const PARSER_ELEMENT* parser_find_element(const PARSER_XML*      xml,
                                           PARSER_INT             max_depth,
                                           PARSER_INT             xml_name_list_length,
                                           const PARSER_CHAR*     element_name);
+
+// parser_find_attribute
+
+const PARSER_ATTRIBUTE* parser_find_attribute(const PARSER_XML*       xml,
+                                              const PARSER_ELEMENT*   element,
+                                              const PARSER_ATTRIBUTE* offset,
+                                              const PARSER_CHAR*      attribute_name,
+                                              const PARSER_XML_NAME*  xml_name_list,
+                                              PARSER_INT              xml_name_list_length);
 
 #endif

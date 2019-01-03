@@ -100,7 +100,7 @@ static inline PARSER_INT parser_strncmp(const PARSER_CHAR* str_1,
             break;
     }
 
-    return (*str_1 - *str_2);
+    return(*str_1 - *str_2);
 }
 
 // parser_strnlen
@@ -112,7 +112,7 @@ static inline PARSER_INT parser_strnlen(const PARSER_CHAR* str,
 
     for ( n= 0; n < max_length && *str != '\0'; n++, str++ );
 
-    return (n);
+    return(n);
 }
 
 // parser_strncpy
@@ -127,7 +127,7 @@ static inline PARSER_INT parser_strncpy(const PARSER_CHAR* src,
 
     *dest= '\0';
 
-    return (n);
+    return(n);
 }
 
 
@@ -141,10 +141,16 @@ static inline PARSER_ERROR find_matching_string_index(const PARSER_CHAR*     nam
     PARSER_INT i;
 
     if ( !name_string || !*name_string || !index )
-        return (-1);
+    {
+        *index= PARSER_UNKNOWN_INDEX;
+        return(0);
+    }
 
     if ( !name_list || name_list_count == 0 )
-        return (-1);
+    {
+        *index= PARSER_UNKNOWN_INDEX;
+        return(0);
+    }
 
     for ( i= 0; i < name_list_count; i++ )
     {
@@ -153,7 +159,7 @@ static inline PARSER_ERROR find_matching_string_index(const PARSER_CHAR*     nam
 #if defined(PARSER_INCLUDE_LOG)
             parser_log(__LINE__, __FUNCTION__, "Invalid string at index: %d", i);
 #endif
-            return (-1);
+            return(PARSER_RESULT_ERROR);
         }
 
         // Return index if match is found.
@@ -161,20 +167,20 @@ static inline PARSER_ERROR find_matching_string_index(const PARSER_CHAR*     nam
         if ( !parser_strncmp(name_list[i].name, name_string, PARSER_MAX_NAME_STRING_LENGTH) )
         {
             *index= i;
-            return (0);
+            return(0);
         }
     }
 
-    *index= -1;
+    *index= PARSER_UNKNOWN_INDEX;
 
-    return (0);
+    return(0);
 }
 
 // parser_add_new_element
 
 static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
-                                              const PARSER_XML_NAME* xml_name_list,
-                                              PARSER_INT             xml_name_list_length,
+                                              const PARSER_XML_NAME* element_name_list,
+                                              PARSER_INT             element_name_list_length,
                                               PARSER_ELEMENT*        parent_element,
                                               const PARSER_CHAR*     element_name)
 {
@@ -190,7 +196,7 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
 #if defined(PARSER_INCLUDE_LOG)
         parser_log(__LINE__, __FUNCTION__, "Parser error: Invalid xml struct pointer");
 #endif
-        return (0);
+        return(0);
     }
 
     // Allocate memory for element struct.
@@ -201,7 +207,7 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
 #if defined(PARSER_INCLUDE_LOG)
         parser_log(__LINE__, __FUNCTION__, "Parser: Out of memory");
 #endif
-        return (0);
+        return(0);
     }
 
     child_element->content_type=    0;
@@ -226,7 +232,7 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
 #if defined(PARSER_INCLUDE_LOG)
             parser_log(__LINE__, __FUNCTION__, "Parser error: last_element == NULL");
 #endif
-            return (0);
+            return(0);
         }
 
         else
@@ -255,13 +261,13 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
 
     // Find element name index in xml name list.
 
-    error= find_matching_string_index(element_name, xml_name_list, xml_name_list_length, &index);
+    error= find_matching_string_index(element_name, element_name_list, element_name_list_length, &index);
     if ( error )
     {
 #if defined(PARSER_INCLUDE_LOG)
         parser_log(__LINE__, __FUNCTION__, "Error %d at finding xml name index", error);
 #endif
-        return (0);
+        return(0);
     }
 
     // Set element name type to xml name list index.
@@ -291,7 +297,7 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
 #if defined(PARSER_INCLUDE_LOG)
             parser_log(__LINE__, __FUNCTION__, "Warning: Element name length < 1");
 #endif
-            return (child_element);
+            return(child_element);
         }
 
         // Allocate memory for the element name string buffer.
@@ -303,7 +309,7 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
             parser_log(__LINE__, __FUNCTION__, "Parser: Out of memory");
 #endif
             free(child_element);
-            return (0);
+            return(0);
         }
 
         // Copy element name to buffer.
@@ -314,14 +320,14 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
     }
 #endif
 
-    return (child_element);
+    return(child_element);
 }
 
 // parser_add_attribute_to_element
 
 static PARSER_ERROR parser_add_attribute_to_element(PARSER_ELEMENT*        parent_element,
-                                                    const PARSER_XML_NAME* xml_name_list,
-                                                    PARSER_INT             xml_name_list_length,
+                                                    const PARSER_XML_NAME* attribute_name_list,
+                                                    PARSER_INT             attribute_name_list_length,
                                                     const PARSER_CHAR*     attribute_name_string,
                                                     const PARSER_CHAR*     attribute_value_string)
 {
@@ -338,7 +344,7 @@ static PARSER_ERROR parser_add_attribute_to_element(PARSER_ELEMENT*        paren
 #if defined(PARSER_INCLUDE_LOG)
         parser_log(__LINE__, __FUNCTION__, "Parser error: Invalid parameter");
 #endif
-        return (PARSER_RESULT_ERROR);
+        return(PARSER_RESULT_ERROR);
     }
 
     // Check start/stop indexes.
@@ -348,7 +354,7 @@ static PARSER_ERROR parser_add_attribute_to_element(PARSER_ELEMENT*        paren
 
     // Find matching XML name index.
 
-    error= find_matching_string_index(attribute_name_string, xml_name_list, xml_name_list_length, &index);
+    error= find_matching_string_index(attribute_name_string, attribute_name_list, attribute_name_list_length, &index);
     PARSER_ASSERT(!error);
 
     // Allocate memory for element attribute struct.
@@ -359,7 +365,7 @@ static PARSER_ERROR parser_add_attribute_to_element(PARSER_ELEMENT*        paren
 #if defined(PARSER_INCLUDE_LOG)
         parser_log(__LINE__, __FUNCTION__, "Parser: Out of memory");
 #endif
-        return (PARSER_RESULT_OUT_OF_MEMORY);
+        return(PARSER_RESULT_OUT_OF_MEMORY);
     }
 
     attribute->attribute_type= PARSER_ATTRIBUTE_VALUE_TYPE_INTEGER;
@@ -481,7 +487,7 @@ static PARSER_ERROR parser_add_attribute_to_element(PARSER_ELEMENT*        paren
         attribute->attr_name.attribute_index= index;
     }
 
-    return (0);
+    return(0);
 }
 
 // parser_copy_element_content_string
@@ -535,7 +541,7 @@ static PARSER_ERROR parser_copy_element_content_string(PARSER_ELEMENT*    owner_
 
     owner_element->inner_string.last_string= string;
 
-    return (0);
+    return(0);
 }
 
 // parser_free_element
@@ -709,8 +715,10 @@ PARSER_XML* parser_begin(void)
 PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
                                  const PARSER_CHAR*     xml_string,
                                  PARSER_INT             xml_string_length,
-                                 const PARSER_XML_NAME* xml_name_list,
-                                 PARSER_INT             xml_name_list_length)
+                                 const PARSER_XML_NAME* element_name_list,
+                                 PARSER_INT             element_name_list_length,
+                                 const PARSER_XML_NAME* attribute_name_list,
+                                 PARSER_INT             attribute_name_list_length)
 {
     PARSER_INT   i;
     PARSER_ERROR error;
@@ -725,15 +733,17 @@ PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
         return(PARSER_RESULT_ERROR);
     }
 
-    // ... and xml name list.
+    // ... and element name list.
 
-    else if ( !xml_name_list || xml_name_list_length < 1 )
+#if !defined(PARSER_WITH_DYNAMIC_NAMES)
+    else if ( !element_name_list || element_name_list_length < 1 )
     {
 #if defined(PARSER_INCLUDE_LOG)
         parser_log(__LINE__, __FUNCTION__, "Error: No xml name count == 0");
 #endif
         return(PARSER_RESULT_ERROR);
     }
+#endif
 
     if ( !xml )
     {
@@ -859,7 +869,7 @@ PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
 
             // Add new element to xml struct.
 
-            xml->state->element= parser_add_new_element(xml, xml_name_list, xml_name_list_length, xml->state->parent_element, xml->state->temp_name_buffer);
+            xml->state->element= parser_add_new_element(xml, element_name_list, element_name_list_length, xml->state->parent_element, xml->state->temp_name_buffer);
             if ( !xml->state->element )
             {
 #if defined(PARSER_INCLUDE_LOG)
@@ -1040,9 +1050,22 @@ PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
 
                 xml->state->temp_value_buffer[xml->state->value_buf_pos]= '\0';
 
+                // Give warning and skip attribute if compiled without dynamic string buffer allocation and
+                // attribute name list is empty.
+
+#if !defined(PARSER_WITH_DYNAMIC_NAMES)
+                if ( !attribute_name_list || attribute_name_list_length < 1 )
+                {
+#if defined(PARSER_INCLUDE_LOG)
+                    parser_log(__LINE__, __FUNCTION__, "Warning: Attribute found in xml while attribute name list is empty and compiled without dynamically allocated string buffers.");
+#endif
+                    continue;
+                }
+#endif
+
                 // Link attribute to parent element.
 
-                error= parser_add_attribute_to_element(xml->state->element, xml_name_list, xml_name_list_length, xml->state->temp_name_buffer, xml->state->temp_value_buffer);
+                error= parser_add_attribute_to_element(xml->state->element, attribute_name_list, attribute_name_list_length, xml->state->temp_name_buffer, xml->state->temp_value_buffer);
                 if ( error )
                 {
 #if defined(PARSER_INCLUDE_LOG)
@@ -1067,7 +1090,7 @@ PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
 
     }
 
-    return (0);
+    return(0);
 }
 
 #if defined(PARSER_CONFIG_INCLUDE_XML_WRITE)
@@ -1154,6 +1177,7 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
 #endif
         }
 
+#if defined(PARSER_WITH_DYNAMIC_NAMES)
         else if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_STRING) && attribute->attr_name.name_string && *attribute->attr_name.name_string && (*bytes_written) < (buffer_size-1) )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
@@ -1164,6 +1188,7 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
             buffer_append_string("=", buffer, buffer_size, bytes_written);
 #endif
         }
+#endif
 
         else if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_NONE) && (*bytes_written) < (buffer_size-1) )
         {
@@ -1256,13 +1281,14 @@ static void print_inner_strings(PARSER_STRING* string,
 
 // parser_write_xml_element_to_buffer
 
-static PARSER_INT parser_write_xml_element_to_buffer(PARSER_ELEMENT*        element,
-                                                     const PARSER_XML_NAME* xml_name_list,
-                                                     PARSER_CHAR*           buffer,
-                                                     PARSER_INT             buffer_size,
-                                                     PARSER_INT*            bytes_written,
-                                                     PARSER_INT             depth,
-                                                     PARSER_INT             flags)
+static PARSER_ERROR parser_write_xml_element_to_buffer(PARSER_ELEMENT*        element,
+                                                       const PARSER_XML_NAME* element_name_list,
+                                                       const PARSER_XML_NAME* attribute_name_list,
+                                                       PARSER_CHAR*           buffer,
+                                                       PARSER_INT             buffer_size,
+                                                       PARSER_INT*            bytes_written,
+                                                       PARSER_INT             depth,
+                                                       PARSER_INT             flags)
 {
 
     while ( element && (*bytes_written) < (buffer_size-1) )
@@ -1273,10 +1299,10 @@ static PARSER_INT parser_write_xml_element_to_buffer(PARSER_ELEMENT*        elem
         if ( (element->content_type & PARSER_ELEMENT_NAME_TYPE_INDEX) && element->elem_name.name_index != PARSER_UNKNOWN_INDEX && (*bytes_written) < (buffer_size-1) )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"<%s", xml_name_list[element->elem_name.name_index].name);
+            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"<%s", element_name_list[element->elem_name.name_index].name);
 #else
             buffer_append_string("<", buffer, buffer_size, bytes_written);
-            buffer_append_string(xml_name_list[element->elem_name.name_index].name, buffer, buffer_size, bytes_written);
+            buffer_append_string(element_name_list[element->elem_name.name_index].name, buffer, buffer_size, bytes_written);
 #endif
         }
 #if defined(PARSER_WITH_DYNAMIC_NAMES)
@@ -1301,7 +1327,7 @@ static PARSER_INT parser_write_xml_element_to_buffer(PARSER_ELEMENT*        elem
 
         if ( element->first_attribute )
         {
-            print_attributes(element->first_attribute, xml_name_list, buffer, buffer_size, bytes_written);
+            print_attributes(element->first_attribute, attribute_name_list, buffer, buffer_size, bytes_written);
         }
 
         if ( (element->inner_element.first_element || element->inner_string.first_string) && (*bytes_written) < (buffer_size-1) )
@@ -1318,7 +1344,7 @@ static PARSER_INT parser_write_xml_element_to_buffer(PARSER_ELEMENT*        elem
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
             (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"\n");
 #endif
-            parser_write_xml_element_to_buffer(element->inner_element.first_element, xml_name_list, buffer, buffer_size, bytes_written, depth+1, 0);
+            parser_write_xml_element_to_buffer(element->inner_element.first_element, element_name_list, attribute_name_list, buffer, buffer_size, bytes_written, depth+1, 0);
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
             (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"%*s", depth*2, "");
 #endif
@@ -1341,10 +1367,10 @@ static PARSER_INT parser_write_xml_element_to_buffer(PARSER_ELEMENT*        elem
         else if ( (element->content_type & PARSER_ELEMENT_NAME_TYPE_INDEX) && element->elem_name.name_index != PARSER_UNKNOWN_INDEX && (*bytes_written) < (buffer_size-1) )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"</%s>\n", xml_name_list[element->elem_name.name_index].name);
+            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"</%s>\n", element_name_list[element->elem_name.name_index].name);
 #else
             buffer_append_string("</", buffer, buffer_size, bytes_written);
-            buffer_append_string(xml_name_list[element->elem_name.name_index].name, buffer, buffer_size, bytes_written);
+            buffer_append_string(element_name_list[element->elem_name.name_index].name, buffer, buffer_size, bytes_written);
             buffer_append_string(">", buffer, buffer_size, bytes_written);
 #endif
         }
@@ -1372,18 +1398,21 @@ static PARSER_INT parser_write_xml_element_to_buffer(PARSER_ELEMENT*        elem
         element= element->next_element;
     }
 
-    return (0);
+    return(0);
 }
 
 // parser_write_xml__to_buffer
 
 PARSER_ERROR parser_write_xml_to_buffer(const PARSER_XML*      xml,
-                                        const PARSER_XML_NAME* xml_name_list,
+                                        const PARSER_XML_NAME* element_name_list,
+                                        const PARSER_XML_NAME* attribute_name_list,
                                         PARSER_CHAR*           buffer,
                                         PARSER_INT             buffer_size,
                                         PARSER_INT*            bytes_written,
                                         PARSER_INT             flags)
 {
+    PARSER_ERROR error;
+
     if ( !xml )
     {
 #if defined(PARSER_INCLUDE_LOG)
@@ -1404,13 +1433,13 @@ PARSER_ERROR parser_write_xml_to_buffer(const PARSER_XML*      xml,
     if ( !xml->first_element )
         return(0);
 
-    parser_write_xml_element_to_buffer(xml->first_element, xml_name_list, buffer, buffer_size, bytes_written, 0, flags);
+    error= parser_write_xml_element_to_buffer(xml->first_element, element_name_list, attribute_name_list, buffer, buffer_size, bytes_written, 0, flags);
 
     // Make sure buffer is ended with \0.
 
     buffer[(*bytes_written) > buffer_size? buffer_size-1 : (*bytes_written)]= '\0';
 
-    return (0);
+    return(error);
 }
 #endif
 
@@ -1485,13 +1514,13 @@ const PARSER_ELEMENT* parser_find_element(const PARSER_XML*      xml,
             depth++;
         }
 
-        // If no more elements are available depth > 0 then move to parent element.
+        // If no more elements are available and element has parent element then move to parent element.
 
-        else if ( !element->next_element && depth > 0 && !element->inner_element.first_element )
+        else if ( !element->next_element && element->parent_element && !element->inner_element.first_element )
         {
             // Iterate until parent element with next element is found.
 
-            while ( depth > 0 && element && element->parent_element )
+            while ( element && element->parent_element )
             {
                 depth--;
 
@@ -1514,7 +1543,86 @@ const PARSER_ELEMENT* parser_find_element(const PARSER_XML*      xml,
         {
             element= element->next_element;
         }
+    }
 
+    return(0);
+}
+
+// parser_find_attribute
+
+const PARSER_ATTRIBUTE* parser_find_attribute(const PARSER_XML*       xml,
+                                              const PARSER_ELEMENT*   element,
+                                              const PARSER_ATTRIBUTE* offset,
+                                              const PARSER_CHAR*      attribute_name,
+                                              const PARSER_XML_NAME*  xml_name_list,
+                                              PARSER_INT              xml_name_list_length)
+{
+    const PARSER_ATTRIBUTE* attribute;
+
+    if ( !xml )
+    {
+#if defined(PARSER_INCLUDE_LOG)
+        parser_log(__LINE__, __FUNCTION__, " Error: Inavlid XML-struct pointer.");
+#endif
+        return(0);
+    }
+
+    // Element can be null if attribute offset is given.
+
+    if ( !element && !offset )
+    {
+#if defined(PARSER_INCLUDE_LOG)
+        parser_log(__LINE__, __FUNCTION__, " Error: No element or attribute offset pointer.");
+#endif
+        return(0);
+    }
+
+#if !defined(PARSER_WITH_DYNAMIC_NAMES)
+    if ( !xml_name_list || xml_name_list_length < 1 )
+    {
+#if defined(PARSER_INCLUDE_LOG)
+        parser_log(__LINE__, __FUNCTION__, " Error: XML-name list is empty.");
+#endif
+        return(0);
+    }
+#endif
+
+    if ( !attribute_name || !*attribute_name )
+    {
+#if defined(PARSER_INCLUDE_LOG)
+        parser_log(__LINE__, __FUNCTION__, " Error: Invalid attribute name.");
+#endif
+        return(0);
+    }
+
+    attribute= offset ? offset : element->first_attribute;
+
+    // Iterate trough attribute list.
+
+    while ( attribute )
+    {
+        // Return attribute pointer if name matches the name in the xml-name list with given index.
+
+        if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_INDEX) &&
+             (attribute->attr_name.attribute_index != PARSER_UNKNOWN_INDEX) &&
+             (attribute->attr_name.attribute_index < xml_name_list_length   &&
+             !parser_strncmp(xml_name_list[attribute->attr_name.attribute_index].name, attribute_name, PARSER_MAX_NAME_STRING_LENGTH)) )
+        {
+            return(attribute);
+        }
+
+        // If compiled with dynamically allocated string buffers...
+
+#if defined(PARSER_WITH_DYNAMIC_NAMES)
+        else if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_STRING)         &&
+                  (attribute->attr_name.name_string && *attribute->attr_name.name_string) &&
+                  !parser_strncmp(attribute->attr_name.name_string, attribute_name, PARSER_MAX_NAME_STRING_LENGTH) )
+        {
+            return(attribute);
+        }
+#endif
+
+        attribute= attribute->next_attribute;
     }
 
     return(0);

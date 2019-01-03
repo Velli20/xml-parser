@@ -25,8 +25,8 @@ SOFTWARE.
 #ifndef xml_parser_config_h
 #define xml_parser_config_h
 
-// #define PARSER_INCLUDE_LOG
-#define PARSER_WITH_DYNAMIC_NAMES
+#define PARSER_INCLUDE_LOG
+//#define PARSER_WITH_DYNAMIC_NAMES
 
 #define PARSER_CONFIG_INCLUDE_XML_WRITE
 #define PARSER_MAX_NAME_STRING_LENGTH       80

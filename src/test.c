@@ -30,9 +30,9 @@ SOFTWARE.
 #include "test.h"
 #include "xml_parser.h"
 
-// List of element and attribute names in test string.
+// List of element names in test string.
 
-static const PARSER_XML_NAME xml_names[]=
+static const PARSER_XML_NAME test_1_element_names[]=
 {
     { "element_type_1"     },
     { "element_type_2"     },
@@ -41,7 +41,18 @@ static const PARSER_XML_NAME xml_names[]=
     { "element_type_5"     },
     { "element_type_6"     },
     { "element_type_7"     },
+    { "element_type_8"     },
 
+    { "testElementId"   },
+    { "intAttribute"    },
+    { "floatAttribute"  },
+    { "stringAttribute" },
+};
+
+// List attribute names in test string.
+
+static const PARSER_XML_NAME test_1_attribute_names[]=
+{
     { "testElementId"   },
     { "intAttribute"    },
     { "floatAttribute"  },
@@ -90,7 +101,7 @@ static PARSER_ERROR test_split_parse(void)
 
     for ( i= 0, buffer_lenght= strlen(parse_test_string); i < buffer_lenght; i++ )
     {
-        error= parser_parse_string(xml, &(parse_test_string[i]), 1, xml_names, sizeof(xml_names)/sizeof(PARSER_XML_NAME));
+        error= parser_parse_string(xml, &(parse_test_string[i]), 1, test_1_element_names, sizeof(test_1_element_names)/sizeof(PARSER_XML_NAME), test_1_attribute_names, sizeof(test_1_attribute_names)/sizeof(PARSER_XML_NAME));
         if ( error )
             break;
     }
@@ -103,7 +114,7 @@ static PARSER_ERROR test_split_parse(void)
 
     // Write parsed xml back to string format.
 
-    error= parser_write_xml_to_buffer(xml, xml_names, buffer_out, sizeof(buffer_out), &bytes_written, 0);
+    error= parser_write_xml_to_buffer(xml, test_1_element_names, test_1_attribute_names, buffer_out, sizeof(buffer_out), &bytes_written, 0);
     if ( error )
         return(error);
 
@@ -143,7 +154,7 @@ static PARSER_ERROR test_parse(void)
 
     // Parse string.
 
-    error= parser_parse_string(xml, parse_test_string, strlen(parse_test_string), xml_names, sizeof(xml_names)/sizeof(PARSER_XML_NAME));
+    error= parser_parse_string(xml, parse_test_string, strlen(parse_test_string), test_1_element_names, sizeof(test_1_element_names)/sizeof(PARSER_XML_NAME), test_1_attribute_names, sizeof(test_1_attribute_names)/sizeof(PARSER_XML_NAME));
     if ( error )
         return(error);
 
@@ -155,7 +166,7 @@ static PARSER_ERROR test_parse(void)
 
     // Write parsed xml back to string.
 
-    error= parser_write_xml_to_buffer(xml, xml_names, buffer_out, sizeof(buffer_out), &bytes_written, 0);
+    error= parser_write_xml_to_buffer(xml, test_1_element_names, test_1_attribute_names, buffer_out, sizeof(buffer_out), &bytes_written, 0);
     if ( error )
         return(error);
 
@@ -179,7 +190,7 @@ static PARSER_ERROR test_parse(void)
 
 // List of element names in test string.
 
-static const PARSER_XML_NAME test_find_elements_xml_names[]=
+static const PARSER_XML_NAME test_find_elements_element_names[]=
 {
     { "element_type_1"  },
     { "element_type_2"  },
@@ -191,6 +202,12 @@ static const PARSER_XML_NAME test_find_elements_xml_names[]=
     { "element_type_8"  },
     { "element_type_9"  },
     { "element_type_10" },
+};
+
+// List of attribute names in test string
+static const PARSER_XML_NAME test_find_elements_attribute_names[]=
+{
+    { "depth"  },
 };
 
 static const char test_find_elements_string[]=
@@ -237,7 +254,8 @@ static PARSER_ERROR test_find_element(void)
 
     // Parse string.
 
-    error= parser_parse_string(xml, test_find_elements_string, strlen(test_find_elements_string), test_find_elements_xml_names, sizeof(test_find_elements_xml_names)/sizeof(PARSER_XML_NAME));
+    error= parser_parse_string(xml, test_find_elements_string, strlen(test_find_elements_string), test_find_elements_element_names, sizeof(test_find_elements_element_names)/sizeof(PARSER_XML_NAME),
+                               test_find_elements_attribute_names, sizeof(test_find_elements_attribute_names)/sizeof(PARSER_XML_NAME));
     if ( error )
         return(error);
 
@@ -249,16 +267,16 @@ static PARSER_ERROR test_find_element(void)
 
     // Make sure all elements are found.
 
-    for ( i= 0; i < sizeof(test_find_elements_xml_names)/sizeof(PARSER_XML_NAME); i++ )
+    for ( i= 0, elem= 0; i < sizeof(test_find_elements_element_names)/sizeof(PARSER_XML_NAME); i++ )
     {
-        elem= parser_find_element(xml, test_find_elements_xml_names, 0, 4, sizeof(test_find_elements_xml_names)/sizeof(PARSER_XML_NAME), test_find_elements_xml_names[i].name);
+        elem= parser_find_element(xml, test_find_elements_element_names, elem, 4, sizeof(test_find_elements_element_names)/sizeof(PARSER_XML_NAME), test_find_elements_element_names[i].name);
         if ( !elem )
         {
-            printf("%s %d: Element %s not found.\n", __FUNCTION__, __LINE__, test_find_elements_xml_names[i].name);
+            printf("%s %d: Element %s not found.\n", __FUNCTION__, __LINE__, test_find_elements_element_names[i].name);
         }
         else
         {
-            printf("%s %d: Element %s found.\n", __FUNCTION__, __LINE__, test_find_elements_xml_names[i].name);
+            printf("%s %d: Element %s found.\n", __FUNCTION__, __LINE__, test_find_elements_element_names[i].name);
         }
     }
 
