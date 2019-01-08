@@ -1623,3 +1623,83 @@ const PARSER_ELEMENT* parser_find_element(const PARSER_XML*      xml,
 
     return(0);
 }
+
+// parser_find_attribute
+
+const PARSER_ATTRIBUTE* parser_find_attribute(const PARSER_XML*       xml,
+                                              const PARSER_ELEMENT*   element,
+                                              const PARSER_ATTRIBUTE* offset,
+                                              const PARSER_CHAR*      attribute_name,
+                                              const PARSER_XML_NAME*  xml_name_list,
+                                              PARSER_INT              xml_name_list_length)
+{
+    const PARSER_ATTRIBUTE* attribute;
+
+    if ( !xml )
+    {
+#if defined(PARSER_INCLUDE_LOG)
+        parser_log(__LINE__, __FUNCTION__, " Error: Inavlid XML-struct pointer.");
+#endif
+        return(0);
+    }
+
+    // Element can be null if attribute offset is given.
+
+    if ( !element && !offset )
+    {
+#if defined(PARSER_INCLUDE_LOG)
+        parser_log(__LINE__, __FUNCTION__, " Error: No element or attribute offset pointer.");
+#endif
+        return(0);
+    }
+
+#if !defined(PARSER_WITH_DYNAMIC_NAMES)
+    if ( !xml_name_list || xml_name_list_length < 1 )
+    {
+#if defined(PARSER_INCLUDE_LOG)
+        parser_log(__LINE__, __FUNCTION__, " Error: XML-name list is empty.");
+#endif
+        return(0);
+    }
+#endif
+
+    if ( !attribute_name || !*attribute_name )
+    {
+#if defined(PARSER_INCLUDE_LOG)
+        parser_log(__LINE__, __FUNCTION__, " Error: Invalid attribute name.");
+#endif
+        return(0);
+    }
+
+    attribute= offset ? offset : element->first_attribute;
+
+    // Iterate trough attribute list.
+
+    while ( attribute )
+    {
+        // Return attribute pointer if name matches the name in the xml-name list with given index.
+
+        if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_INDEX) &&
+             (attribute->attr_name.attribute_index != PARSER_UNKNOWN_INDEX) &&
+             (attribute->attr_name.attribute_index < xml_name_list_length   &&
+             !parser_strncmp(xml_name_list[attribute->attr_name.attribute_index].name, attribute_name, PARSER_MAX_NAME_STRING_LENGTH)) )
+        {
+            return(attribute);
+        }
+
+        // If compiled with dynamically allocated string buffers...
+
+#if defined(PARSER_WITH_DYNAMIC_NAMES)
+        else if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_STRING)         &&
+                  (attribute->attr_name.name_string && *attribute->attr_name.name_string) &&
+                  !parser_strncmp(attribute->attr_name.name_string, attribute_name, PARSER_MAX_NAME_STRING_LENGTH) )
+        {
+            return(attribute);
+        }
+#endif
+
+        attribute= attribute->next_attribute;
+    }
+
+    return(0);
+}
