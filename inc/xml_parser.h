@@ -27,7 +27,6 @@ SOFTWARE.
 
 // Includes
 
-#include <stdio.h>
 #include <inttypes.h>
 #include "xml_parser_config.h"
 
@@ -53,7 +52,6 @@ SOFTWARE.
 #define PARSER_ATTRIBUTE_NAME_TYPE_INDEX    0x10
 #define PARSER_ATTRIBUTE_NAME_TYPE_STRING   0x20
 #define PARSER_ATTRIBUTE_NAME_TYPE_NONE     0x40
-
 
 // Parser typedefs
 
@@ -158,8 +156,8 @@ typedef struct parser_element
 
     // Element inner content.
 
-    struct parser_string_content inner_string;
-    struct parser_child_element  inner_element;
+    struct parser_string_content child_string;
+    struct parser_child_element  child_element;
 
     PARSER_INT content_type;
 }
@@ -196,7 +194,7 @@ typedef struct parser_xml
 }
 PARSER_XML;
 
-// Assert macro
+// Macros
 
 #define PARSER_ASSERT(CONDITION)             \
     if ( !(CONDITION) )                      \
@@ -205,6 +203,15 @@ PARSER_XML;
         __FUNCTION__, __LINE__, #CONDITION); \
         return(PARSER_RESULT_ERROR);         \
     }
+
+#define PARSER_IS_INT_ATTRIBUTE(ATTRIBUTE)         ((((PARSER_ATTRIBUTE*)ATTRIBUTE)->attribute_type & PARSER_ATTRIBUTE_VALUE_TYPE_INTEGER))
+#define PARSER_IS_FLOAT_ATTRIBUTE(ATTRIBUTE)       ((((PARSER_ATTRIBUTE*)ATTRIBUTE)->attribute_type & PARSER_ATTRIBUTE_VALUE_TYPE_FLOAT))
+#define PARSER_IS_STRING_ATTRIBUTE(ATTRIBUTE)      ((((PARSER_ATTRIBUTE*)ATTRIBUTE)->attribute_type & PARSER_ATTRIBUTE_VALUE_TYPE_STRING))
+
+#define PARSER_GET_NEXT_ELEMENT(PARENT_ELEMENT)    ((((PARSER_ELEMENT*)PARENT_ELEMENT)->next_element))
+#define PARSER_GET_CHILD_ELEMENT(PARENT_ELEMENT)   ((((PARSER_ELEMENT*)PARENT_ELEMENT)->child_element.first_element))
+#define PARSER_GET_CHILD_STRING(PARENT_ELEMENT)    ((((PARSER_ELEMENT*)PARENT_ELEMENT)->child_string.first_string))
+#define PARSER_GET_FIRST_ATTRIBUTE(PARENT_ELEMENT) ((((PARSER_ELEMENT*)PARENT_ELEMENT)->first_attribute))
 
 // parser_begin
 

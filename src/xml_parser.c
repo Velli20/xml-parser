@@ -33,7 +33,6 @@ SOFTWARE.
 #include <stdlib.h>
 #include <math.h>
 
-
 // Defines
 
 #define PARSER_STATE_COMMENT_OPEN             0x001
@@ -130,7 +129,6 @@ static inline PARSER_INT parser_strncpy(const PARSER_CHAR* src,
     return(n);
 }
 
-
 // find_matching_string_index
 
 static inline PARSER_ERROR find_matching_string_index(const PARSER_CHAR*     name_string,
@@ -211,7 +209,7 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
     }
 
     child_element->content_type=    0;
-    child_element->inner_string.first_string= 0;
+    child_element->child_string.first_string= 0;
     child_element->next_element=    0;
     child_element->parent_element=  0;
     child_element->first_attribute= 0;
@@ -221,12 +219,12 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
 
     if ( parent_element )
     {
-        if ( !parent_element->inner_element.first_element )
+        if ( !parent_element->child_element.first_element )
         {
-            parent_element->inner_element.first_element= child_element;
+            parent_element->child_element.first_element= child_element;
         }
 
-        else if ( !parent_element->inner_element.last_element )
+        else if ( !parent_element->child_element.last_element )
         {
             free(child_element);
 #if defined(PARSER_INCLUDE_LOG)
@@ -237,12 +235,12 @@ static PARSER_ELEMENT* parser_add_new_element(PARSER_XML*            xml,
 
         else
         {
-            parent_element->inner_element.last_element->next_element= child_element;
+            parent_element->child_element.last_element->next_element= child_element;
         }
 
         // Inherit parent element pointer from previous element.
 
-        parent_element->inner_element.last_element= child_element;
+        parent_element->child_element.last_element= child_element;
         child_element->parent_element=              parent_element;
     }
 
@@ -533,13 +531,13 @@ static PARSER_ERROR parser_copy_element_content_string(PARSER_ELEMENT*    owner_
 
     // Link first string struct to owner element.
 
-    if ( !owner_element->inner_string.first_string )
-        owner_element->inner_string.first_string= string;
+    if ( !owner_element->child_string.first_string )
+        owner_element->child_string.first_string= string;
 
-    if ( owner_element->inner_string.last_string )
-        owner_element->inner_string.last_string->next_string= string;
+    if ( owner_element->child_string.last_string )
+        owner_element->child_string.last_string->next_string= string;
 
-    owner_element->inner_string.last_string= string;
+    owner_element->child_string.last_string= string;
 
     return(0);
 }
@@ -565,14 +563,14 @@ static PARSER_ERROR parser_free_element(PARSER_ELEMENT* element)
 
         // Free inner element structs.
 
-        if ( element->inner_element.first_element )
-            parser_free_element(element->inner_element.first_element);
+        if ( element->child_element.first_element )
+            parser_free_element(element->child_element.first_element);
 
         // Free inner string structs.
 
-        if ( element->inner_string.first_string )
+        if ( element->child_string.first_string )
         {
-            string= element->inner_string.first_string;
+            string= element->child_string.first_string;
             while ( string )
             {
                 prev_string= string;
@@ -1201,7 +1199,7 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
 
         // Print attribute value.
 
-        if ( (attribute->attribute_type & PARSER_ATTRIBUTE_VALUE_TYPE_STRING) && attribute->attr_val.string_ptr && *attribute->attr_val.string_ptr && (*bytes_written) < (buffer_size-1) )
+        if ( PARSER_IS_STRING_ATTRIBUTE(attribute) && attribute->attr_val.string_ptr && *attribute->attr_val.string_ptr && (*bytes_written) < (buffer_size-1) )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
             (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"\"%s\"", attribute->attr_val.string_ptr);
@@ -1212,7 +1210,7 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
 #endif
         }
 
-        else if ( (attribute->attribute_type & PARSER_ATTRIBUTE_VALUE_TYPE_INTEGER) && (*bytes_written) < (buffer_size-1) )
+        else if ( PARSER_IS_INT_ATTRIBUTE(attribute) && (*bytes_written) < (buffer_size-1) )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
             (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"\"%d\"", attribute->attr_val.int_value);
@@ -1223,7 +1221,7 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
 #endif
         }
 
-        else if ( (attribute->attribute_type & PARSER_ATTRIBUTE_VALUE_TYPE_FLOAT) && (*bytes_written) < (buffer_size-1) )
+        else if ( PARSER_IS_FLOAT_ATTRIBUTE(attribute) && (*bytes_written) < (buffer_size-1) )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
             (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"\"%f\"", attribute->attr_val.float_value);
@@ -1279,6 +1277,20 @@ static void print_inner_strings(PARSER_STRING* string,
     }
 }
 
+
+// Macros to make code more readable.
+
+#define BUFFER_PTR(BUFFER, BYTES_WRITTEN)((&((PARSER_CHAR*)BUFFER)[(*((PARSER_INT*)BYTES_WRITTEN))]))
+#define BUFFER_SIZE_LEFT(BYTES_WRITTEN, BUFFER_SIZE)((BUFFER_SIZE - (*((PARSER_INT*)BYTES_WRITTEN))))
+
+// Macro to check that buffer is not overflowing.
+
+#define CHECK_BUFFER_SIZE(BYTES_WRITTEN, BUFFER_SIZE)          \
+    if ( BUFFER_SIZE_LEFT(BYTES_WRITTEN, BUFFER_SIZE-1) < 1 )    \
+    {                                                          \
+        break;                                                 \
+    }
+
 // parser_write_xml_element_to_buffer
 
 static PARSER_ERROR parser_write_xml_element_to_buffer(PARSER_ELEMENT*        element,
@@ -1290,95 +1302,150 @@ static PARSER_ERROR parser_write_xml_element_to_buffer(PARSER_ELEMENT*        el
                                                        PARSER_INT             depth,
                                                        PARSER_INT             flags)
 {
+    PARSER_ERROR error;
 
-    while ( element && (*bytes_written) < (buffer_size-1) )
+    while ( element )
     {
+        CHECK_BUFFER_SIZE(bytes_written, buffer_size)
+
+        // If compiled with std lib the intend spaces at start of the line.
+
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-        (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"%*s", depth*2, "");
+        (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"%*s", depth*2, "");
 #endif
-        if ( (element->content_type & PARSER_ELEMENT_NAME_TYPE_INDEX) && element->elem_name.name_index != PARSER_UNKNOWN_INDEX && (*bytes_written) < (buffer_size-1) )
+
+        // Assert output buffer size after each write operation to avoid overflow.
+
+        CHECK_BUFFER_SIZE(bytes_written, buffer_size)
+
+        // Write element start tag <NAME. Get element name from element name list if it has a mathing index.
+
+        if ( (element->content_type & PARSER_ELEMENT_NAME_TYPE_INDEX) && element->elem_name.name_index != PARSER_UNKNOWN_INDEX )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"<%s", element_name_list[element->elem_name.name_index].name);
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"<%s", element_name_list[element->elem_name.name_index].name);
 #else
             buffer_append_string("<", buffer, buffer_size, bytes_written);
             buffer_append_string(element_name_list[element->elem_name.name_index].name, buffer, buffer_size, bytes_written);
 #endif
         }
+
+        // If elment name was not found from element name list then check if element name was stored in to a dynamically allocated string buffer.
+
 #if defined(PARSER_WITH_DYNAMIC_NAMES)
-        else if ( (element->content_type & PARSER_ELEMENT_NAME_TYPE_STRING) && element->elem_name.name_string && (*bytes_written) < (buffer_size-1) )
+        else if ( (element->content_type & PARSER_ELEMENT_NAME_TYPE_STRING) && element->elem_name.name_string )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"<%s", element->elem_name.name_string);
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"<%s", element->elem_name.name_string);
 #else
             buffer_append_string("<", buffer, buffer_size, bytes_written);
             buffer_append_string(element->elem_name.name_string, buffer, buffer_size, bytes_written);
 #endif
         }
 #endif
-        else if ( (*bytes_written) < (buffer_size-1) )
+
+        // If element name is unknown then print <null.
+
+        else
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"<null");
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"<null");
 #else
             buffer_append_string("<null ", buffer, buffer_size, bytes_written);
 #endif
         }
 
-        if ( element->first_attribute )
+        // Check for buffer overflow.
+
+        CHECK_BUFFER_SIZE(bytes_written, buffer_size)
+
+        // If element has attributes then print attributes and attribute values right after the element name.
+
+        if ( PARSER_GET_FIRST_ATTRIBUTE(element) )
         {
-            print_attributes(element->first_attribute, attribute_name_list, buffer, buffer_size, bytes_written);
+            print_attributes(PARSER_GET_FIRST_ATTRIBUTE(element), attribute_name_list, buffer, buffer_size, bytes_written);
         }
 
-        if ( (element->inner_element.first_element || element->inner_string.first_string) && (*bytes_written) < (buffer_size-1) )
+        // Check for buffer overflow.
+
+        CHECK_BUFFER_SIZE(bytes_written, buffer_size)
+
+        // If element has child element or string then leave element open.
+
+        if ( (PARSER_GET_CHILD_ELEMENT(element) || PARSER_GET_CHILD_STRING(element)) )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),">");
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),">");
 #else
             buffer_append_string(">", buffer, buffer_size, bytes_written);
 #endif
         }
 
-        if ( element->inner_element.first_element && (*bytes_written) < (buffer_size-1) )
+        // Check for buffer overflow.
+
+        CHECK_BUFFER_SIZE(bytes_written, buffer_size)
+
+        // Write child elements if we have any.
+
+        if ( PARSER_GET_CHILD_ELEMENT(element) )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"\n");
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"\n");
 #endif
-            parser_write_xml_element_to_buffer(element->inner_element.first_element, element_name_list, attribute_name_list, buffer, buffer_size, bytes_written, depth+1, 0);
+            error= parser_write_xml_element_to_buffer(PARSER_GET_CHILD_ELEMENT(element), element_name_list, attribute_name_list, buffer, buffer_size, bytes_written, depth+1, 0);
+            PARSER_ASSERT(!error);
+
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"%*s", depth*2, "");
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"%*s", depth*2, "");
 #endif
         }
 
-        if ( element->inner_string.first_string && (*bytes_written) < (buffer_size-1)  )
+        // Check for buffer overflow.
+
+        CHECK_BUFFER_SIZE(bytes_written, buffer_size)
+
+        // Write child strings.
+
+        if ( PARSER_GET_CHILD_STRING(element) )
         {
-            print_inner_strings(element->inner_string.first_string, buffer, buffer_size, bytes_written, depth+1);
+            print_inner_strings(PARSER_GET_CHILD_STRING(element), buffer, buffer_size, bytes_written, depth+1);
         }
 
-        if ( !element->inner_string.first_string && !element->inner_element.first_element && (*bytes_written) < (buffer_size-1) )
+        // Check for buffer overflow.
+
+        CHECK_BUFFER_SIZE(bytes_written, buffer_size)
+
+        // Close element name tag with /> if there was no child elements or strings.
+
+        if ( !PARSER_GET_CHILD_STRING(element) && !PARSER_GET_CHILD_ELEMENT(element) )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"/>\n");
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"/>\n");
 #else
             buffer_append_string("/>", buffer, buffer_size, bytes_written);
 #endif
         }
 
-        else if ( (element->content_type & PARSER_ELEMENT_NAME_TYPE_INDEX) && element->elem_name.name_index != PARSER_UNKNOWN_INDEX && (*bytes_written) < (buffer_size-1) )
+        // Otherwise close element with </NAME> tag. Check if element name is found from in element name list.
+
+        else if ( (element->content_type & PARSER_ELEMENT_NAME_TYPE_INDEX) && element->elem_name.name_index != PARSER_UNKNOWN_INDEX )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"</%s>\n", element_name_list[element->elem_name.name_index].name);
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"</%s>\n", element_name_list[element->elem_name.name_index].name);
 #else
             buffer_append_string("</", buffer, buffer_size, bytes_written);
             buffer_append_string(element_name_list[element->elem_name.name_index].name, buffer, buffer_size, bytes_written);
             buffer_append_string(">", buffer, buffer_size, bytes_written);
 #endif
         }
+
+        // If element has no element name index then check for a dynamically allocated string buffer for element name.
+
 #if defined(PARSER_WITH_DYNAMIC_NAMES)
-        else if ( (element->content_type & PARSER_ELEMENT_NAME_TYPE_STRING) && element->elem_name.name_string && (*bytes_written) < (buffer_size-1) )
+        else if ( (element->content_type & PARSER_ELEMENT_NAME_TYPE_STRING) && element->elem_name.name_string )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"</%s>\n", element->elem_name.name_string);
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"</%s>\n", element->elem_name.name_string);
 #else
             buffer_append_string("</", buffer, buffer_size, bytes_written);
             buffer_append_string(element->elem_name.name_string, buffer, buffer_size, bytes_written);
@@ -1386,16 +1453,25 @@ static PARSER_ERROR parser_write_xml_element_to_buffer(PARSER_ELEMENT*        el
 #endif
         }
 #endif
-        else if ( (*bytes_written) < (buffer_size-1) )
+
+        // In case of element name is unknown, then print </null> tag to close element content.
+
+        else
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"</null>\n");
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"</null>\n");
 #else
             buffer_append_string("</null>", buffer, buffer_size, bytes_written);
 #endif
         }
 
-        element= element->next_element;
+        // Check for buffer overflow.
+
+        CHECK_BUFFER_SIZE(bytes_written, buffer_size)
+
+        // Write next element.
+
+        element= PARSER_GET_NEXT_ELEMENT(element);
     }
 
     return(0);
@@ -1508,15 +1584,15 @@ const PARSER_ELEMENT* parser_find_element(const PARSER_XML*      xml,
 
         // Move to inner element.
 
-        if ( element->inner_element.first_element && depth < max_depth)
+        if ( element->child_element.first_element && depth < max_depth)
         {
-            element= element= element->inner_element.first_element;
+            element= element= element->child_element.first_element;
             depth++;
         }
 
         // If no more elements are available and element has parent element then move to parent element.
 
-        else if ( !element->next_element && element->parent_element && !element->inner_element.first_element )
+        else if ( !element->next_element && element->parent_element && !element->child_element.first_element )
         {
             // Iterate until parent element with next element is found.
 
@@ -1543,86 +1619,6 @@ const PARSER_ELEMENT* parser_find_element(const PARSER_XML*      xml,
         {
             element= element->next_element;
         }
-    }
-
-    return(0);
-}
-
-// parser_find_attribute
-
-const PARSER_ATTRIBUTE* parser_find_attribute(const PARSER_XML*       xml,
-                                              const PARSER_ELEMENT*   element,
-                                              const PARSER_ATTRIBUTE* offset,
-                                              const PARSER_CHAR*      attribute_name,
-                                              const PARSER_XML_NAME*  xml_name_list,
-                                              PARSER_INT              xml_name_list_length)
-{
-    const PARSER_ATTRIBUTE* attribute;
-
-    if ( !xml )
-    {
-#if defined(PARSER_INCLUDE_LOG)
-        parser_log(__LINE__, __FUNCTION__, " Error: Inavlid XML-struct pointer.");
-#endif
-        return(0);
-    }
-
-    // Element can be null if attribute offset is given.
-
-    if ( !element && !offset )
-    {
-#if defined(PARSER_INCLUDE_LOG)
-        parser_log(__LINE__, __FUNCTION__, " Error: No element or attribute offset pointer.");
-#endif
-        return(0);
-    }
-
-#if !defined(PARSER_WITH_DYNAMIC_NAMES)
-    if ( !xml_name_list || xml_name_list_length < 1 )
-    {
-#if defined(PARSER_INCLUDE_LOG)
-        parser_log(__LINE__, __FUNCTION__, " Error: XML-name list is empty.");
-#endif
-        return(0);
-    }
-#endif
-
-    if ( !attribute_name || !*attribute_name )
-    {
-#if defined(PARSER_INCLUDE_LOG)
-        parser_log(__LINE__, __FUNCTION__, " Error: Invalid attribute name.");
-#endif
-        return(0);
-    }
-
-    attribute= offset ? offset : element->first_attribute;
-
-    // Iterate trough attribute list.
-
-    while ( attribute )
-    {
-        // Return attribute pointer if name matches the name in the xml-name list with given index.
-
-        if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_INDEX) &&
-             (attribute->attr_name.attribute_index != PARSER_UNKNOWN_INDEX) &&
-             (attribute->attr_name.attribute_index < xml_name_list_length   &&
-             !parser_strncmp(xml_name_list[attribute->attr_name.attribute_index].name, attribute_name, PARSER_MAX_NAME_STRING_LENGTH)) )
-        {
-            return(attribute);
-        }
-
-        // If compiled with dynamically allocated string buffers...
-
-#if defined(PARSER_WITH_DYNAMIC_NAMES)
-        else if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_STRING)         &&
-                  (attribute->attr_name.name_string && *attribute->attr_name.name_string) &&
-                  !parser_strncmp(attribute->attr_name.name_string, attribute_name, PARSER_MAX_NAME_STRING_LENGTH) )
-        {
-            return(attribute);
-        }
-#endif
-
-        attribute= attribute->next_attribute;
     }
 
     return(0);
