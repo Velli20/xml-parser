@@ -1152,6 +1152,19 @@ static void buffer_append_string(const PARSER_CHAR* str,
     }
 }
 
+// Macros to make code more readable.
+
+#define BUFFER_PTR(BUFFER, BYTES_WRITTEN)           ((&((PARSER_CHAR*)BUFFER)[(*((PARSER_INT*)BYTES_WRITTEN))]))
+#define BUFFER_SIZE_LEFT(BYTES_WRITTEN, BUFFER_SIZE)((BUFFER_SIZE - (*((PARSER_INT*)BYTES_WRITTEN))))
+
+// Macro to check that buffer is not overflowing.
+
+#define CHECK_BUFFER_SIZE(BYTES_WRITTEN, BUFFER_SIZE)     \
+if ( BUFFER_SIZE_LEFT(BYTES_WRITTEN, BUFFER_SIZE-1) < 1 ) \
+{                                                         \
+    break;                                                \
+}
+
 // print_attributes
 
 static void print_attributes(PARSER_ATTRIBUTE*      attribute,
@@ -1160,14 +1173,18 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
                              PARSER_INT             buffer_size,
                              PARSER_INT*            bytes_written)
 {
-    while ( attribute && (*bytes_written) < (buffer_size-1) )
+    while ( attribute )
     {
+        // Assert output buffer size after each write operation to avoid overflow.
+
+        CHECK_BUFFER_SIZE(bytes_written, buffer_size)
+
         // Print attribute name.
 
-        if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_INDEX) && attribute->attr_name.attribute_index != PARSER_UNKNOWN_INDEX && (*bytes_written) < (buffer_size-1) )
+        if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_INDEX) && attribute->attr_name.attribute_index != PARSER_UNKNOWN_INDEX )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written))," %s=", xml_name_list[attribute->attr_name.attribute_index].name);
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size)," %s=", xml_name_list[attribute->attr_name.attribute_index].name);
 #else
             buffer_append_string(" ", buffer, buffer_size, bytes_written);
             buffer_append_string(xml_name_list[attribute->attr_name.attribute_index].name, buffer, buffer_size, bytes_written);
@@ -1176,10 +1193,10 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
         }
 
 #if defined(PARSER_WITH_DYNAMIC_NAMES)
-        else if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_STRING) && attribute->attr_name.name_string && *attribute->attr_name.name_string && (*bytes_written) < (buffer_size-1) )
+        else if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_STRING) && attribute->attr_name.name_string && *attribute->attr_name.name_string )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written))," %s=", attribute->attr_name.name_string);
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size)," %s=", attribute->attr_name.name_string);
 #else
             buffer_append_string(" ", buffer, buffer_size, bytes_written);
             buffer_append_string(attribute->attr_name.name_string, buffer, buffer_size, bytes_written);
@@ -1188,21 +1205,25 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
         }
 #endif
 
-        else if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_NONE) && (*bytes_written) < (buffer_size-1) )
+        else if ( (attribute->attribute_type & PARSER_ATTRIBUTE_NAME_TYPE_NONE) )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written))," null=");
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size)," null=");
 #else
             buffer_append_string(" null=", buffer, buffer_size, bytes_written);
 #endif
         }
 
+        // Assert output buffer size after each write operation to avoid overflow.
+
+        CHECK_BUFFER_SIZE(bytes_written, buffer_size)
+
         // Print attribute value.
 
-        if ( PARSER_IS_STRING_ATTRIBUTE(attribute) && attribute->attr_val.string_ptr && *attribute->attr_val.string_ptr && (*bytes_written) < (buffer_size-1) )
+        if ( PARSER_IS_STRING_ATTRIBUTE(attribute) && attribute->attr_val.string_ptr && *attribute->attr_val.string_ptr )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"\"%s\"", attribute->attr_val.string_ptr);
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"\"%s\"", attribute->attr_val.string_ptr);
 #else
             buffer_append_string("\"", buffer, buffer_size, bytes_written);
             buffer_append_string(attribute->attr_val.string_ptr, buffer, buffer_size, bytes_written);
@@ -1210,10 +1231,10 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
 #endif
         }
 
-        else if ( PARSER_IS_INT_ATTRIBUTE(attribute) && (*bytes_written) < (buffer_size-1) )
+        else if ( PARSER_IS_INT_ATTRIBUTE(attribute) )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"\"%d\"", attribute->attr_val.int_value);
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"\"%d\"", attribute->attr_val.int_value);
 #else
             buffer_append_string("\"", buffer, buffer_size, bytes_written);
             buffer_append_int(attribute->attr_val.int_value, buffer, buffer_size, bytes_written);
@@ -1221,10 +1242,10 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
 #endif
         }
 
-        else if ( PARSER_IS_FLOAT_ATTRIBUTE(attribute) && (*bytes_written) < (buffer_size-1) )
+        else if ( PARSER_IS_FLOAT_ATTRIBUTE(attribute) )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"\"%f\"", attribute->attr_val.float_value);
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"\"%f\"", attribute->attr_val.float_value);
 #else
             buffer_append_string("\"", buffer, buffer_size, bytes_written);
             buffer_append_float(attribute->attr_val.float_value, buffer, buffer_size, bytes_written);
@@ -1232,10 +1253,10 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
 #endif
         }
 
-        else if ( (*bytes_written) < (buffer_size-1) )
+        else
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"\"null\"");
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"\"null\"");
 #else
             buffer_append_string("\"null\"", buffer, buffer_size, bytes_written);
 #endif
@@ -1247,27 +1268,31 @@ static void print_attributes(PARSER_ATTRIBUTE*      attribute,
 
 // print_inner_strings
 
-static void print_inner_strings(PARSER_STRING* string,
-                                PARSER_CHAR*   buffer,
-                                PARSER_INT     buffer_size,
-                                PARSER_INT*    bytes_written,
-                                PARSER_INT     depth)
+static PARSER_ERROR print_inner_strings(PARSER_STRING* string,
+                                        PARSER_CHAR*   buffer,
+                                        PARSER_INT     buffer_size,
+                                        PARSER_INT*    bytes_written,
+                                        PARSER_INT     depth)
 {
-    while ( string && string->buffer && (*bytes_written) < (buffer_size-1) )
+    while ( string && string->buffer )
     {
-        if ( *string->buffer && (*bytes_written) < (buffer_size-1) )
+        // Assert output buffer size after each write operation to avoid overflow.
+
+        CHECK_BUFFER_SIZE(bytes_written, buffer_size)
+
+        if ( *string->buffer )
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"%s", string->buffer);
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"%s", string->buffer);
 #else
             buffer_append_string(string->buffer, buffer, buffer_size, bytes_written);
 #endif
         }
 
-        else if ( (*bytes_written) < (buffer_size-1) )
+        else
         {
 #if defined(PARSER_CONFIG_INCLUDE_STDIO_LIB)
-            (*bytes_written)+= snprintf(&buffer[(*bytes_written)], (buffer_size-(*bytes_written)),"null");
+            (*bytes_written)+= snprintf(BUFFER_PTR(buffer, bytes_written), BUFFER_SIZE_LEFT(bytes_written, buffer_size),"null");
 #else
             buffer_append_string("null", buffer, buffer_size, bytes_written);
 #endif
@@ -1276,20 +1301,6 @@ static void print_inner_strings(PARSER_STRING* string,
         string= string->next_string;
     }
 }
-
-
-// Macros to make code more readable.
-
-#define BUFFER_PTR(BUFFER, BYTES_WRITTEN)((&((PARSER_CHAR*)BUFFER)[(*((PARSER_INT*)BYTES_WRITTEN))]))
-#define BUFFER_SIZE_LEFT(BYTES_WRITTEN, BUFFER_SIZE)((BUFFER_SIZE - (*((PARSER_INT*)BYTES_WRITTEN))))
-
-// Macro to check that buffer is not overflowing.
-
-#define CHECK_BUFFER_SIZE(BYTES_WRITTEN, BUFFER_SIZE)          \
-    if ( BUFFER_SIZE_LEFT(BYTES_WRITTEN, BUFFER_SIZE-1) < 1 )    \
-    {                                                          \
-        break;                                                 \
-    }
 
 // parser_write_xml_element_to_buffer
 
@@ -1557,6 +1568,8 @@ const PARSER_ELEMENT* parser_find_element(const PARSER_XML*      xml,
 #endif
         return(0);
     }
+
+    // Iterate trough all elements if no element offset is provided.
 
     if ( offset )
         element= offset;
