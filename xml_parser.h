@@ -23,15 +23,30 @@ SOFTWARE.
 */
 
 #ifndef xml_parser_h
-#define xml_paser_h
+#define xml_parser_h
 
-// Includes
+// Includes.
 
-#include <stdio.h>
+#include <stddef.h>
 #include <inttypes.h>
-#include "xml_parser_config.h"
 
-// Defines
+// Error codes.
+
+#if !defined(ENOMEM)
+#define ENOMEM 12
+#endif
+
+#if !defined(EINVAL)
+#define EINVAL 22
+#endif
+
+//#define PARSER_INCLUDE_LOG
+//#define PARSER_WITH_DYNAMIC_NAMES
+
+#define PARSER_MAX_NAME_STRING_LENGTH       128
+#define PARSER_MAX_VALUE_STRING_LENGTH      128
+
+// Defines.
 
 #define PARSER_RESULT_ERROR                 0x01
 #define PARSER_RESULT_OUT_OF_MEMORY         0x02
@@ -54,20 +69,17 @@ SOFTWARE.
 #define PARSER_ATTRIBUTE_NAME_TYPE_STRING   0x20
 #define PARSER_ATTRIBUTE_NAME_TYPE_NONE     0x40
 
+// Types.
 
-// Parser typedefs
-
-typedef uint8_t PARSER_ERROR;
+typedef int32_t PARSER_ERROR;
 
 typedef int32_t PARSER_INT;
 
 typedef float PARSER_FLOAT;
 
-typedef int32_t PARSER_SIZE;
+typedef size_t PARSER_SIZE;
 
 typedef char PARSER_CHAR;
-
-// parser_xml_name
 
 typedef struct parser_xml_name
 {
@@ -75,11 +87,19 @@ typedef struct parser_xml_name
 }
 PARSER_XML_NAME;
 
-// parser_attribute
+typedef enum
+{
+    ATTRIBUTE_TYPE_INTEGER = 0,
+    ATTRIBUTE_TYPE_FLOAT,
+    ATTRIBUTE_TYPE_STRING,
+    ATTRIBUTE_TYPE_UNKNOWN
+}
+PARSER_ATTRIBUTE_TYPE;
 
 typedef struct parser_attribute
 {
     PARSER_INT attribute_type;
+    PARSER_INT pad;
 
     union ATTRIBUTE_VALUE
     {
@@ -105,19 +125,14 @@ typedef struct parser_attribute
 }
 PARSER_ATTRIBUTE;
 
-// parser_string
-
 typedef struct parser_string
 {
-    PARSER_CHAR*          buffer;
     PARSER_SIZE           buffer_size;
+    PARSER_CHAR*          buffer;
 
     struct parser_string* next_string;
 }
 PARSER_STRING;
-
-
-// parser_string_content
 
 typedef struct parser_string_content
 {
@@ -125,8 +140,6 @@ typedef struct parser_string_content
     PARSER_STRING* last_string;
 }
 PARSER_STRING_CONTENT;
-
-// parser_child_element
 
 typedef struct parser_child_element
 {
@@ -145,21 +158,22 @@ typedef struct parser_element
     struct parser_attribute* first_attribute;
     struct parser_attribute* last_attribute;
 
+    // Element inner content.
+
+    struct parser_string_content child_string;
+    struct parser_child_element  child_element;
     // Element name.
 
     union PARSER_ELEMENT_NAME
     {
-        PARSER_INT   name_index;
+        PARSER_INT name_index;
+
 #if defined(PARSER_WITH_DYNAMIC_NAMES)
         PARSER_CHAR* name_string;
 #endif
     }
     elem_name;
 
-    // Element inner content.
-
-    struct parser_string_content inner_string;
-    struct parser_child_element  inner_element;
 
     PARSER_INT content_type;
 }
@@ -169,19 +183,22 @@ PARSER_ELEMENT;
 
 typedef struct parser_state
 {
+    PARSER_ELEMENT* element;
+    PARSER_ELEMENT* parent_element;
+
     PARSER_INT  flags;
     PARSER_INT  name_buf_pos;
     PARSER_INT  value_buf_pos;
+    PARSER_INT  pad_1;
 
     PARSER_CHAR previous_char;
     PARSER_CHAR current_char;
     PARSER_CHAR next_char;
+    PARSER_CHAR pad_2;
 
+    PARSER_INT  pad_3;
     PARSER_CHAR temp_name_buffer[PARSER_MAX_NAME_STRING_LENGTH];
-    PARSER_CHAR temp_value_buffer[PARSER_MAX_NAME_STRING_LENGTH];
-
-    PARSER_ELEMENT* element;
-    PARSER_ELEMENT* parent_element;
+    PARSER_CHAR temp_value_buffer[PARSER_MAX_VALUE_STRING_LENGTH];
 }
 PARSER_STATE;
 
@@ -191,57 +208,70 @@ typedef struct parser_xml
 {
     PARSER_STATE* state;
 
+    const PARSER_XML_NAME* element_name_list;
+    const PARSER_XML_NAME* attribute_name_list;
+
     struct parser_element* first_element;
     struct parser_element* last_element;
+
+    PARSER_INT element_name_list_length;
+    PARSER_INT attribute_name_list_length;
 }
 PARSER_XML;
 
-// Assert macro
+#define PARSER_GET_CHILD_STRING(PARENT_ELEMENT)    ((((PARSER_ELEMENT*)PARENT_ELEMENT)->child_string.first_string))
 
-#define PARSER_ASSERT(CONDITION)             \
-    if ( !(CONDITION) )                      \
-    {                                        \
-        printf("Parser assert %s %d: %s",    \
-        __FUNCTION__, __LINE__, #CONDITION); \
-        return(PARSER_RESULT_ERROR);         \
-    }
+// parser_malloc
+
+void* parser_malloc(size_t size);
+
+// parser_free
+
+void parser_free(void* ptr);
 
 // parser_begin
 
-PARSER_XML* parser_begin(void);
-
-// parser_finalize
+PARSER_XML* parser_begin(const PARSER_XML_NAME* element_name_list,
+                         PARSER_INT             element_name_list_length,
+                         const PARSER_XML_NAME* attribute_name_list,
+                         PARSER_INT             attribute_name_list_length);
 
 PARSER_ERROR parser_finalize(PARSER_XML* xml);
 
-// parse_xml
-
-PARSER_ERROR parser_parse_string(PARSER_XML*            xml,
-                                 const PARSER_CHAR*     xml_string,
-                                 PARSER_INT             xml_string_length,
-                                 const PARSER_XML_NAME* xml_name_list,
-                                 PARSER_INT             xml_name_list_length);
+PARSER_ERROR parser_append(PARSER_XML*        xml,
+                           const PARSER_CHAR* xml_string,
+                           PARSER_INT         xml_string_length);
 
 // parser_free_xml
 
 PARSER_ERROR parser_free_xml(PARSER_XML* xml);
 
-// parser_print_xml
-
-PARSER_ERROR parser_write_xml_to_buffer(const PARSER_XML*      xml,
-                                        const PARSER_XML_NAME* xml_name_list,
-                                        PARSER_CHAR*           buffer,
-                                        PARSER_INT             buffer_size,
-                                        PARSER_INT*            bytes_written,
-                                        PARSER_INT             flags);
-
 // parser_find_element
 
 const PARSER_ELEMENT* parser_find_element(const PARSER_XML*      xml,
-                                          const PARSER_XML_NAME* xml_name_list,
                                           const PARSER_ELEMENT*  offset,
                                           PARSER_INT             max_depth,
-                                          PARSER_INT             xml_name_list_length,
                                           const PARSER_CHAR*     element_name);
+
+const PARSER_ATTRIBUTE* parser_find_attribute(const PARSER_XML*       xml,
+                                              const PARSER_ELEMENT*   element,
+                                              const PARSER_ATTRIBUTE* offset,
+                                              const PARSER_CHAR*      attribute_name);
+
+const PARSER_ELEMENT* parser_get_next_element(const PARSER_ELEMENT* element);
+
+const PARSER_ELEMENT* parser_get_first_child_element(const PARSER_ELEMENT* element);
+
+PARSER_ATTRIBUTE_TYPE parser_get_attribute_type(const PARSER_ATTRIBUTE* attribute);
+
+PARSER_ERROR parser_get_attribute_int_value(const PARSER_ATTRIBUTE* attribute,
+                                            PARSER_INT*             int_value_ptr);
+
+PARSER_ERROR parser_get_attribute_string_value(const PARSER_ATTRIBUTE* attribute,
+                                               const PARSER_CHAR**     string_value_ptr);
+
+const PARSER_ATTRIBUTE* parser_get_first_element_attribute(const PARSER_ELEMENT* element);
+
+const PARSER_ATTRIBUTE* parser_get_next_element_attribute(const PARSER_ATTRIBUTE* attribute);
 
 #endif

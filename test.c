@@ -23,16 +23,16 @@ SOFTWARE.
 */
 
 #include <stdio.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 
-#include "test.h"
 #include "xml_parser.h"
 
-// List of element and attribute names in test string.
+// List of element names in test string.
 
-static const PARSER_XML_NAME xml_names[]=
+static const PARSER_XML_NAME test_1_element_names[]=
 {
     { "element_type_1"     },
     { "element_type_2"     },
@@ -41,6 +41,7 @@ static const PARSER_XML_NAME xml_names[]=
     { "element_type_5"     },
     { "element_type_6"     },
     { "element_type_7"     },
+    { "element_type_8"     },
 
     { "testElementId"   },
     { "intAttribute"    },
@@ -48,7 +49,17 @@ static const PARSER_XML_NAME xml_names[]=
     { "stringAttribute" },
 };
 
-static const char parse_test_string[]=
+// List attribute names in test string.
+
+static const PARSER_XML_NAME test_1_attribute_names[]=
+{
+    { "testElementId"   },
+    { "intAttribute"    },
+    { "floatAttribute"  },
+    { "stringAttribute" },
+};
+
+static const PARSER_CHAR parse_test_string[]=
 {
 "<element_type_1 testElementId=\"0\" intAttribute=\"20\" floatAttribute=\"1.230000\" stringAttribute=\"TEST\">\n"
 "  <element_type_2 testElementId=\"1\">\n"
@@ -69,56 +80,43 @@ static const char parse_test_string[]=
 "</element_type_1>\n"
 };
 
+#define COUNTOF(ARRAY) (sizeof(ARRAY) / sizeof(ARRAY[0]))
+
 // test_split_parse
 
 static PARSER_ERROR test_split_parse(void)
 {
     PARSER_XML*  xml;
-    PARSER_CHAR  buffer_out[1024];
-    PARSER_INT   buffer_lenght;
-    PARSER_INT   bytes_written;
     PARSER_ERROR error;
-    int          i;
+    size_t       buffer_lenght;
+    size_t       i;
 
     // Initialize xml-struct.
 
-    xml= parser_begin();
+    xml = parser_begin(test_1_element_names, COUNTOF(test_1_element_names), test_1_attribute_names, COUNTOF(test_1_attribute_names));
     if ( !xml )
         return(1);
 
     // Test split parsing xml 1-byte at the time.
 
-    for ( i= 0, buffer_lenght= strlen(parse_test_string); i < buffer_lenght; i++ )
+    buffer_lenght = strlen(parse_test_string);
+
+    for ( i = 0; i < buffer_lenght; i++ )
     {
-        error= parser_parse_string(xml, &(parse_test_string[i]), 1, xml_names, sizeof(xml_names)/sizeof(PARSER_XML_NAME));
+        error = parser_append(xml, &(parse_test_string[i]), 1);
         if ( error )
             break;
     }
 
     // End parsing.
 
-    error= parser_finalize(xml);
+    error = parser_finalize(xml);
     if ( error )
         return(error);
-
-    // Write parsed xml back to string format.
-
-    error= parser_write_xml_to_buffer(xml, xml_names, buffer_out, sizeof(buffer_out), &bytes_written, 0);
-    if ( error )
-        return(error);
-
-    // Check that output buffer matches original string.
-
-    if ( strncmp(buffer_out, parse_test_string, sizeof(buffer_out)) )
-    {
-        printf("%s %d: Split parse result error: input and output string does not match.\n", __FUNCTION__, __LINE__);
-        printf("Original string:\n%s\n\n", parse_test_string);
-        printf("Output buffer string:\n%s\n\n", buffer_out);
-    }
 
     // Free xml.
 
-    error= parser_free_xml(xml);
+    error = parser_free_xml(xml);
     if ( error )
         return(error);
 
@@ -130,47 +128,29 @@ static PARSER_ERROR test_split_parse(void)
 static PARSER_ERROR test_parse(void)
 {
     PARSER_XML*  xml;
-    PARSER_CHAR  buffer_out[1024];
-    PARSER_INT   buffer_lenght;
-    PARSER_INT   bytes_written;
     PARSER_ERROR error;
 
     // Initialize xml-struct.
 
-    xml= parser_begin();
+    xml = parser_begin(test_1_element_names, COUNTOF(test_1_element_names), test_1_attribute_names, COUNTOF(test_1_attribute_names));
     if ( !xml )
         return(1);
 
     // Parse string.
 
-    error= parser_parse_string(xml, parse_test_string, strlen(parse_test_string), xml_names, sizeof(xml_names)/sizeof(PARSER_XML_NAME));
+    error = parser_append(xml, parse_test_string, strlen(parse_test_string));
     if ( error )
         return(error);
 
     // End parsing.
 
-    error= parser_finalize(xml);
+    error = parser_finalize(xml);
     if ( error )
         return(error);
-
-    // Write parsed xml back to string.
-
-    error= parser_write_xml_to_buffer(xml, xml_names, buffer_out, sizeof(buffer_out), &bytes_written, 0);
-    if ( error )
-        return(error);
-
-    // Check that output buffer matches original string.
-
-    if ( strncmp(buffer_out, parse_test_string, sizeof(buffer_out)) )
-    {
-        printf("%s %d: Parse result error: input and output string does not match.\n", __FUNCTION__, __LINE__);
-        printf("Original string:\n%s\n\n", parse_test_string);
-        printf("Output buffer string:\n%s\n\n", buffer_out);
-    }
 
     // Free xml.
 
-    error= parser_free_xml(xml);
+    error = parser_free_xml(xml);
     if ( error )
         return(error);
 
@@ -179,7 +159,7 @@ static PARSER_ERROR test_parse(void)
 
 // List of element names in test string.
 
-static const PARSER_XML_NAME test_find_elements_xml_names[]=
+static const PARSER_XML_NAME test_find_elements_element_names[]=
 {
     { "element_type_1"  },
     { "element_type_2"  },
@@ -193,7 +173,13 @@ static const PARSER_XML_NAME test_find_elements_xml_names[]=
     { "element_type_10" },
 };
 
-static const char test_find_elements_string[]=
+// List of attribute names in test string
+static const PARSER_XML_NAME test_find_elements_attribute_names[]=
+{
+    { "depth"  },
+};
+
+static const PARSER_CHAR test_find_elements_string[]=
 {
 "<element_type_1          depth='0'>\n"
 "\n"
@@ -227,44 +213,44 @@ static PARSER_ERROR test_find_element(void)
     const PARSER_ELEMENT* elem;
     PARSER_XML*           xml;
     PARSER_ERROR          error;
+    PARSER_INT            xml_string_length;
+    PARSER_INT            element_list_length;
+    PARSER_INT            attribute_list_length;
     int                   i;
+
+    xml_string_length     = strlen(test_find_elements_string);
+    element_list_length   = COUNTOF(test_find_elements_element_names);
+    attribute_list_length = COUNTOF(test_find_elements_attribute_names);
 
     // Initialize xml-struct.
 
-    xml= parser_begin();
+    xml = parser_begin(test_find_elements_element_names, element_list_length,
+                       test_find_elements_attribute_names, attribute_list_length);
     if ( !xml )
         return(1);
 
     // Parse string.
 
-    error= parser_parse_string(xml, test_find_elements_string, strlen(test_find_elements_string), test_find_elements_xml_names, sizeof(test_find_elements_xml_names)/sizeof(PARSER_XML_NAME));
+    error = parser_append(xml, test_find_elements_string, xml_string_length);
     if ( error )
         return(error);
 
-    // End parsing.
+    // Make sure all elements are succesfully parsed.
 
-    error= parser_finalize(xml);
-    if ( error )
-        return(error);
-
-    // Make sure all elements are found.
-
-    for ( i= 0; i < sizeof(test_find_elements_xml_names)/sizeof(PARSER_XML_NAME); i++ )
+    for ( i = 0, elem = 0; i < element_list_length; i++ )
     {
-        elem= parser_find_element(xml, test_find_elements_xml_names, 0, 4, sizeof(test_find_elements_xml_names)/sizeof(PARSER_XML_NAME), test_find_elements_xml_names[i].name);
+        elem = parser_find_element(xml, elem, 4, test_find_elements_element_names[i].name);
         if ( !elem )
         {
-            printf("%s %d: Element %s not found.\n", __FUNCTION__, __LINE__, test_find_elements_xml_names[i].name);
-        }
-        else
-        {
-            printf("%s %d: Element %s found.\n", __FUNCTION__, __LINE__, test_find_elements_xml_names[i].name);
+            printf("%s %d: Element %s not found.\n", __FUNCTION__, __LINE__, test_find_elements_element_names[i].name);
+            error = PARSER_RESULT_ERROR;
+            break;
         }
     }
 
-    // Free xml.
+    // End parsing.
 
-    error= parser_free_xml(xml);
+    error = parser_finalize(xml);
     if ( error )
         return(error);
 
@@ -273,12 +259,11 @@ static PARSER_ERROR test_find_element(void)
 
 int main(void)
 {
-    PARSER_XML*  xml;
     PARSER_ERROR error;
 
     // Test parsing.
 
-    error= test_parse();
+    error = test_parse();
     if ( error )
     {
         printf("Parse test error: %d\n", error);
@@ -287,7 +272,7 @@ int main(void)
 
     // Test split parsing.
 
-    error= test_split_parse();
+    error = test_split_parse();
     if ( error )
     {
         printf("Split parse test error: %d\n", error);
@@ -296,9 +281,11 @@ int main(void)
 
     // Test element finding.
 
-    error= test_find_element();
+    error = test_find_element();
     if ( error )
         return(error);
+
+    printf("LIBXML test ok\n");
 
     return(0);
 }

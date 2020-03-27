@@ -22,31 +22,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef TEST_H
-#define TEST_H
+// Includes
 
-static const char test_1[]= 
+#include <stdlib.h>
+#include <stddef.h>
+#include <inttypes.h>
+#include "xml_parser.h"
+
+// parser_malloc
+
+void* parser_malloc(size_t size)
 {
-"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-"\n"
-"<ELEM_type_1 testElementId='0' intAttribute='20' floatAttribute='1.23' stringAttribute=\"TEST\">\n"
-"\n"
-"    <!-- Single line comment -->\n"
-"    <ELEM_type_2 testElementId='1'>\n"
-"        <ELEM_type_3 testElementId='11'/>\n"
-"        <ELEM_type_3 testElementId='12'/>\n"
-"        <ELEM_type_3 testElementId='13'/>\n"
-"\n"
-"        <!-- Single line comment -->\n"
-"        <ELEM_type_3 testElementId='14'>\n"
-"            <!-- Multiline\n"
-"            comment -->\n"
-"        </ELEM_type_3>\n"
-"    </ELEM_type_2>\n"
-"\n"
-"    <ELEM_type_2 testElementId='2'>Child element with string content</ELEM_type_2>\n"
-"</ELEM_type_1>\n"
-""
-};
+    return(malloc(size));
+}
 
-#endif
+// parser_free
+
+void parser_free(void* ptr)
+{
+    free(ptr);
+}

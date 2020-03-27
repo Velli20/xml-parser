@@ -9,7 +9,7 @@ Example of parsing string:
 ```c
 // List of element and attribute names in test string.
 
-static const PARSER_XML_NAME xml_names[]=
+static const PARSER_CHAR xml_names[]=
 {
     { "element_type_1"     },
     { "element_type_2"     },
@@ -27,7 +27,7 @@ static const PARSER_XML_NAME xml_names[]=
 
 // String to parse.
 
-static const char parse_test_string[]=
+static const PARSER_CHAR parse_test_string[]=
 {
 "<element_type_1 testElementId=\"0\" intAttribute=\"20\" floatAttribute=\"1.230000\" stringAttribute=\"TEST\">\n"
 "  <element_type_2 testElementId=\"1\">\n"
@@ -64,7 +64,7 @@ static PARSER_ERROR test_parse(void)
 
     // Parse string.
 
-    error= parser_parse_string(xml, parse_test_string, strlen(parse_test_string), xml_names, sizeof(xml_names)/sizeof(PARSER_XML_NAME));
+    error= parser_append(xml, parse_test_string, strlen(parse_test_string), xml_names, sizeof(xml_names)/sizeof(PARSER_CHAR));
     if ( error )
         return(error);
 
